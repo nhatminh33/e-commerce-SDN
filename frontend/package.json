@@ -3,11 +3,30 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@reduxjs/toolkit": "^2.5.1",
+    "@stripe/react-stripe-js": "^2.9.0",
+    "@stripe/stripe-js": "^3.5.0",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "axios": "^1.7.9",
     "cra-template": "1.2.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1",
-    "web-vitals": "^4.2.4"
+    "jwt-decode": "^4.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hot-toast": "^2.5.1",
+    "react-icons": "^5.4.0",
+    "react-multi-carousel": "^2.8.5",
+    "react-range": "^1.10.0",
+    "react-rating": "^2.0.5",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^6.29.0",
+    "react-scripts": "^5.0.1",
+    "react-spinners": "^0.13.8",
+    "socket.io-client": "^4.8.1",
+    "stripe": "^14.25.0",
+    "swiper": "^11.2.2",
+    "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -32,5 +51,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
   }
 }
