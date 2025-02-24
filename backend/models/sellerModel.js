@@ -34,13 +34,6 @@ const sellerSchema = new Schema({
         type: String,
         default : ''
     },
-<<<<<<< HEAD
-=======
-    shopInfo: {
-        type: Object,
-        default : {}
-    },
->>>>>>> upstream/chat
 },{ timestamps: true })
 
 sellerSchema.index({
