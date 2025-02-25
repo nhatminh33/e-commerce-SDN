@@ -18,6 +18,9 @@ app.use(morgan('dev'))
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+app.use('/api', require('./routes/authRoutes'))
+app.use('/api', require('./routes/dashboard/sellerRouters'))
  
 const port = process.env.PORT
 dbConnect()
