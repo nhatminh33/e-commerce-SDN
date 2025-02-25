@@ -26,10 +26,6 @@ const admin_login = async (req, res) => {
             } else {
                 responseReturn(res, 404, { error: "Password Wrong" })
             }
-
-
-
-
         } else {
             responseReturn(res, 404, { error: "Email not Found" })
         }
@@ -45,10 +41,8 @@ const seller_login = async (req, res) => {
     const { email, password } = req.body
     try {
         const seller = await sellerModel.findOne({ email }).select('+password')
-        // console.log(admin)
         if (seller) {
             const match = await bcrpty.compare(password, seller.password)
-            // console.log(match)
             if (match) {
                 const token = await createToken({
                     id: seller.id,
@@ -61,8 +55,6 @@ const seller_login = async (req, res) => {
             } else {
                 responseReturn(res, 404, { error: "Password Wrong" })
             }
-
-
         } else {
             responseReturn(res, 404, { error: "Email not Found" })
         }
