@@ -1,69 +1,66 @@
-const sellerModel = require("../../models/sellerModel");
+const userModel = require("../../models/userModel");
 const { responseReturn } = require("../../utiles/response");
-const bcrpty = require('bcrypt');
+const bcrypt = require('bcrypt');
 
+// 📌 Tạo seller
 const create_seller = async (req, res) => {
-    const { name, email, password } = req.body;
+    const { name, email, password, paymentMethod, accountDetails } = req.body;
 
     if (!name || !email || !password) {
         return res.status(400).json({ message: 'Name, email, and password are required' });
     }
 
     try {
-        const existingSeller = await sellerModel.findOne({ email });
+        const existingSeller = await userModel.findOne({ email, role: "seller" });
         if (existingSeller) {
             return res.status(400).json({ message: 'Email already exists' });
         }
 
-        const hashedPassword = await bcrpty.hash(password, 10);
-        const seller = await sellerModel.create({
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const seller = await userModel.create({
             name,
             email,
             password: hashedPassword,
-            method: 'manual',
             role: 'seller',
+            status: 'active',
+            paymentMethod,
+            accountDetails
         });
 
-        await sellerCustomerModel.create({ myId: seller._id });
-
-        return res.status(201).json({ message: 'Seller created successfully' });
+        return res.status(201).json({ message: 'Seller created successfully', seller });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
 };
 
+// 📌 Lấy thông tin một seller
 const get_seller = async (req, res) => {
     try {
         const { id } = req.params;
-        const seller = await sellerModel.findById(id);
+        const seller = await userModel.findOne({ _id: id, role: "seller" }).select('-password');
         if (!seller) {
-            return responseReturn(res, 404, { error: 'Seller not found' })
+            return responseReturn(res, 404, { error: 'Seller not found' });
         }
-        responseReturn(res, 200, { seller })
+        responseReturn(res, 200, { seller });
     } catch (error) {
-        responseReturn(res, 500, { error: error.message })
+        responseReturn(res, 500, { error: error.message });
     }
-}
+};
 
+// 📌 Lấy danh sách seller có phân trang & tìm kiếm
 const get_sellers = async (req, res) => {
     try {
         const { page: pageInput, searchValue, status, perPage: perPageInput } = req.body || {};
         const page = Math.max(1, Number(pageInput) || 1);
         const perPage = Math.max(1, Number(perPageInput) || 10);
 
-        const query = {};
+        const query = { role: "seller" };
 
         if (searchValue) {
-            // Lấy schema để xác định các trường string
-            const schemaPaths = sellerModel.schema.paths;
-            const stringFields = Object.keys(schemaPaths).filter(path =>
-                schemaPaths[path].instance === 'String'
-            );
-
-            // Tạo điều kiện $or cho tất cả trường string
-            query.$or = stringFields.map(field => ({
-                [field]: { $regex: searchValue, $options: 'i' }
-            }));
+            query.$or = [
+                { name: { $regex: searchValue, $options: 'i' } },
+                { email: { $regex: searchValue, $options: 'i' } }
+            ];
         }
 
         if (status) {
@@ -71,12 +68,12 @@ const get_sellers = async (req, res) => {
         }
 
         const [sellers, total] = await Promise.all([
-            sellerModel.find(query)
+            userModel.find(query)
                 .skip((page - 1) * perPage)
                 .limit(perPage)
                 .sort({ createdAt: -1 })
                 .lean(),
-            sellerModel.countDocuments(query)
+            userModel.countDocuments(query)
         ]);
 
         const pages = Math.ceil(total / perPage);
@@ -87,89 +84,93 @@ const get_sellers = async (req, res) => {
     }
 };
 
+// 📌 Cập nhật trạng thái seller
 const update_seller_status = async (req, res) => {
     try {
-        const { sellerId, status } = req.body
+        const { sellerId, status } = req.body;
 
-        await sellerModel.findByIdAndUpdate(sellerId, { status })
-        const seller = await sellerModel.findById(sellerId)
+        await userModel.findByIdAndUpdate(sellerId, { status });
+        const seller = await userModel.findOne({ _id: sellerId, role: "seller" });
+
         if (!seller) {
-            return responseReturn(res, 404, { error: 'Seller not found' })
+            return responseReturn(res, 404, { error: 'Seller not found' });
         }
 
-        responseReturn(res, 200, { seller, message: "Update seller status successfully" })
+        responseReturn(res, 200, { seller, message: "Update seller status successfully" });
     } catch (error) {
-        console.error('error', error);
-
-        responseReturn(res, 500, { error: error.message })
+        console.error('Update seller status error:', error);
+        responseReturn(res, 500, { error: error.message });
     }
-}
+};
 
+// 📌 Cập nhật thông tin seller
 const update_seller_info = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, email, password, image } = req.body;
-        const seller = await sellerModel.findById(id);
+        const { name, email, password, image, paymentMethod, accountDetails } = req.body;
+        
+        const seller = await userModel.findOne({ _id: id, role: "seller" });
         if (!seller) {
-            return responseReturn(res, 404, { error: 'Seller not found' })
+            return responseReturn(res, 404, { error: 'Seller not found' });
         }
+
         if (name) seller.name = name;
         if (email) seller.email = email;
-        if (password) seller.password = password;
+        if (password) seller.password = await bcrypt.hash(password, 10);
         if (image) seller.image = image;
-        await seller.save();
-        responseReturn(res, 200, { seller, message: "Update seller info successfully" })
-    } catch (error) {
-        responseReturn(res, 500, { error: error.message })
-    }
-}
+        if (paymentMethod) seller.paymentMethod = paymentMethod;
+        if (accountDetails) seller.accountDetails = accountDetails;
 
+        await seller.save();
+        responseReturn(res, 200, { seller, message: "Update seller info successfully" });
+    } catch (error) {
+        responseReturn(res, 500, { error: error.message });
+    }
+};
+
+// 📌 Thay đổi mật khẩu seller
 const change_password = async (req, res) => {
     try {
-        const { password, newPassword } = req.body
-        const { id } = req.params
+        const { password, newPassword } = req.body;
+        const { id } = req.params;
 
-        if (!id) {
-            return res.status(400).json({ error: 'User ID is required' });
-        }
-        if (!password || !newPassword) {
+        if (!id || !password || !newPassword) {
             return res.status(400).json({ error: 'Current password and new password are required' });
         }
         if (password === newPassword) {
             return res.status(400).json({ error: 'New password must be different from current password' });
         }
 
-        const seller = await sellerModel.findById(id).select('+password');
+        const seller = await userModel.findOne({ _id: id, role: "seller" }).select('+password');
         if (!seller) {
             return res.status(404).json({ error: 'User not found' });
         }
-        
-        const isMatch = await bcrpty.compare(password, seller.password);
+
+        const isMatch = await bcrypt.compare(password, seller.password);
         if (!isMatch) {
             return res.status(401).json({ error: 'Current password is incorrect' });
         }
 
-        const hashedPassword = await bcrpty.hash(newPassword, 10);
-        await sellerModel.findByIdAndUpdate(id, { password: hashedPassword });
+        seller.password = await bcrypt.hash(newPassword, 10);
+        await seller.save();
 
         return res.status(200).json({ message: 'Password changed successfully' });
     } catch (error) {
         console.error('Change password error:', error);
         res.status(500).json({ message: error.message });
     }
-}
+};
 
+// 📌 Xóa seller
 const delete_seller = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Validation
         if (!id) {
             return responseReturn(res, 400, { error: 'Seller ID is required' });
         }
 
-        // Xóa seller và kiểm tra kết quả
-        const deletedSeller = await sellerModel.findByIdAndDelete(id);
+        const deletedSeller = await userModel.findOneAndDelete({ _id: id, role: "seller" });
 
         if (!deletedSeller) {
             return responseReturn(res, 404, { error: 'Seller not found' });
@@ -190,4 +191,4 @@ module.exports = {
     delete_seller,
     get_sellers,
     change_password
-}
+};
