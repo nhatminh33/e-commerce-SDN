@@ -1,9 +1,11 @@
 const {Schema, model} = require("mongoose");
-
+require('./userModel')
+require('./categoryModel')
 const productSchema = new Schema({
     sellerId: {
-        type: Schema.ObjectId,
-        required : true
+        type: Schema.Types.ObjectId,
+        required : true,
+        ref: "User"
     },
     name: {
         type: String,
@@ -15,7 +17,8 @@ const productSchema = new Schema({
     },
     category: {
         type: String,
-        required : true
+        required : true,
+        ref: 'categorys'
     },
     brand: {
         type: String,
