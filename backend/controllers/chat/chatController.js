@@ -1,110 +1,136 @@
-const sellerModel = require("../../models/sellerModel");
-const customerModel = require("../../models/customerModel");
+const userModel = require("../../models/userModel");
 const sellerCustomerMessage = require("../../models/chat/sellerCustomerMessage");
+const adminSellerMessage = require("../../models/chat/adminSellerMessage");
+const { responseReturn } = require("../../utiles/response");
 
-const { responseReturn } = require("../../utils/response");
-
+const { ObjectId } = require("mongoose").Types;
 class ChatController {
+  validateChat = async (senderId, receiverId, allowedRoles) => {
+    try {
+      console.log("Raw Sender ID:", senderId);
+      console.log("Raw Receiver ID:", receiverId);
+  
+      const sender = await userModel.findById(new ObjectId(senderId));
+      const receiver = await userModel.findById(new ObjectId(receiverId));
+  
+      console.log("Sender:", sender);
+      console.log("Receiver:", receiver);
+  
+      if (!sender || !receiver) return false;
+  
+      return allowedRoles.some(
+        (roles) => sender.role === roles[0] && receiver.role === roles[1]
+      );
+    } catch (error) {
+      console.error("Error in validateChat:", error);
+      return false;
+    }
+  };
+
   customer_message_add = async (req, res) => {
     const { userId, text, sellerId, name } = req.body;
-
     try {
+      const isValid = await this.validateChat(userId, sellerId, [["customer", "seller"]]);
+      if (!isValid) return responseReturn(res, 403, { error: "Unauthorized chat." });
+      
       const message = await sellerCustomerMessage.create({
         senderId: userId,
         senderName: name,
         receverId: sellerId,
         message: text,
       });
-
       responseReturn(res, 201, { message });
     } catch (error) {
       console.log(error);
     }
   };
-  // End Method
 
-  get_customers = async (req, res) => {
-    const { sellerId } = req.params;
-    try {
-      const messages = await sellerCustomerMessage.find({
-        $or: [{ receverId: sellerId }, { senderId: sellerId }],
-      });
-
-      const customerIds = new Set(
-        messages.map((message) =>
-          message.senderId === sellerId
-            ? message.receverId.toString()
-            : message.senderId.toString()
-        )
-      );
-
-      const customers = await customerModel.find({
-        _id: { $in: Array.from(customerIds) },
-      });
-
-      responseReturn(res, 200, {
-        customers,
-      });
-    } catch (error) {
-      console.log(error);
-    }
-  };
-  // End Method
-
-  get_customers_seller_message = async (req, res) => {
-    const { customerId } = req.params;
-    const { id } = req.body;
-  
-    console.log("customerId:", customerId);
-    console.log("sellerId (id):", id);
-  
-    try {
-      const messages = await sellerCustomerMessage.find({
-        $or: [
-          {
-            $and: [
-              { receverId: { $eq: customerId } },
-              { senderId: { $eq: id } },
-            ],
-          },
-          {
-            $and: [
-              { receverId: { $eq: id } },
-              { senderId: { $eq: customerId } },
-            ],
-          },
-        ],
-      });
-  
-      console.log("Messages found:", messages);
-  
-      const currentCustomer = await customerModel.findById(customerId);
-      responseReturn(res, 200, {
-        messages,
-        currentCustomer,
-      });
-    } catch (error) {
-      console.log(error);
-    }
-  };
-  // End Method
-
-  seller_message_add = async (req, res) => {
+  message_add = async (req, res) => {
     const { senderId, receverId, text, name } = req.body;
     try {
+      const isValid = await this.validateChat(senderId, receverId, [
+        ["customer", "seller"],
+        ["seller", "customer"],
+        ["seller", "admin"],
+        ["admin", "seller"]
+      ]);
+      if (!isValid) return responseReturn(res, 403, { error: "Unauthorized chat." });
+      
       const message = await sellerCustomerMessage.create({
-        senderId: senderId,
+        senderId,
         senderName: name,
-        receverId: receverId,
+        receverId,
         message: text,
       });
-
       responseReturn(res, 201, { message });
     } catch (error) {
       console.log(error);
     }
   };
-  // End Method
+
+  admin_message_insert = async (req, res) => {
+    const { senderId, receverId, message, senderName } = req.body;
+    try {
+      const isValid = await this.validateChat(senderId, receverId, [["admin", "seller"], ["seller", "admin"]]);
+      if (!isValid) return responseReturn(res, 403, { error: "Unauthorized chat." });
+      
+      const messageData = await adminSellerMessage.create({
+        senderId,
+        receverId,
+        message,
+        senderName,
+      });
+      responseReturn(res, 200, { message: messageData });
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  get_messages = async (req, res) => {
+    const { userId, otherUserId } = req.params;
+    try {
+      const customerSellerMessages = await sellerCustomerMessage.find({
+        $or: [
+          { senderId: userId, receverId: otherUserId },
+          { senderId: otherUserId, receverId: userId },
+        ],
+      }).sort({ createdAt: 1 });
+      
+      const adminSellerMessages = await adminSellerMessage.find({
+        $or: [
+          { senderId: userId, receverId: otherUserId },
+          { senderId: otherUserId, receverId: userId },
+        ],
+      }).sort({ createdAt: 1 });
+      
+      const messages = [...customerSellerMessages, ...adminSellerMessages].sort(
+        (a, b) => a.createdAt - b.createdAt
+      );
+      
+      responseReturn(res, 200, { messages });
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  get_chat_participants = async (req, res) => {
+    const { userId } = req.params;
+    try {
+      const messages = await sellerCustomerMessage.find({
+        $or: [{ senderId: userId }, { receverId: userId }],
+      });
+      
+      const participantIds = new Set(messages.map(msg =>
+        msg.senderId.toString() === userId ? msg.receverId.toString() : msg.senderId.toString()
+      ));
+      
+      const participants = await userModel.find({ _id: { $in: Array.from(participantIds) } });
+      
+      responseReturn(res, 200, { participants });
+    } catch (error) {
+      console.log(error);
+    }
+  };
 }
 
 module.exports = new ChatController();

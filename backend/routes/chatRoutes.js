@@ -1,12 +1,11 @@
-const ChatController = require('../controllers/chat/chatController')
+const ChatController = require("../controllers/chat/chatController");
+const router = require("express").Router();
 
-const router = require('express').Router()
+router.post("/chat/customer/send-message-to-seller", ChatController.customer_message_add);
+router.post("/chat/send-message", ChatController.message_add);
+router.post("/chat/admin/send-message", ChatController.admin_message_insert);
 
-router.post('/chat/customer/send-message-to-seller',ChatController.customer_message_add)
+router.get("/chat/get-messages/:userId/:otherUserId", ChatController.get_messages);
+router.get("/chat/get-chat-participants/:userId", ChatController.get_chat_participants);
 
-router.get('/chat/seller/get-customers/:sellerId',ChatController.get_customers)
-router.get('/chat/seller/get-customer-message/:customerId',ChatController.get_customers_seller_message)
-router.post('/chat/seller/send-message-to-customer',ChatController.seller_message_add)
-
- 
-module.exports = router 
+module.exports = router;
