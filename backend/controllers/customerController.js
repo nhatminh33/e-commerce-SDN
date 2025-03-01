@@ -5,8 +5,8 @@ const mongoose = require("mongoose");
 const getAllProduct = async (req, res) => {
     try {
         const products = await productModel.find()
-            .populate("sellerId", "name email image status")
-            .populate("categoryId", "name");
+            .populate("sellerId", "name email image status -_id")
+            .populate("category", "name -_id");
         responseReturn(res, 200, { products });
     } catch (error) {
         responseReturn(res, 500, { error: error.message });
@@ -19,7 +19,9 @@ const getProductById = async (req, res) => {
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return responseReturn(res, 400, { error: "Invalid product ID" });
         }
-        const product = await productModel.findById(id);
+        const product = await productModel.findById(id)
+            .populate("sellerId", "name email image status -_id")
+            .populate("category", "name -_id");
         if (!product) {
             return responseReturn(res, 404, { error: "Product not found" });
         }
@@ -35,7 +37,15 @@ const getWishListByUserId = async (req, res) => {
 
         const wishlist = await wishlistModel
             .find({ userId }) // Lọc theo userId
-            .populate("productId") // Lấy chi tiết sản phẩm
+            .populate(
+                {
+                    path: "productId",
+                    populate: [
+                        {path: sellerId, select: "name email image status -_id"},
+                        {path: category, select: "name -_id"},
+                    ]
+                }
+            ) // Lấy chi tiết sản phẩm
             .populate("userId", "name email"); // Lấy chi tiết user (chỉ lấy name & email)
 
         const products = wishlist.map(item => item.productId);
@@ -45,7 +55,6 @@ const getWishListByUserId = async (req, res) => {
             email: wishlist[0].userId.email,
             products: products
         }
-        
         const wishlistData = {
             user
         }
