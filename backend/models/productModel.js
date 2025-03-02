@@ -1,10 +1,11 @@
-const { Schema, model, Types } = require("mongoose");
-
+const {Schema, model} = require("mongoose");
+require('./userModel')
+require('./categoryModel')
 const productSchema = new Schema({
     sellerId: {
-        type: Types.ObjectId,
-        ref: "User",
-        required: [true, "Seller ID is required!"]
+        type: Schema.Types.ObjectId,
+        required : true,
+        ref: "User"
     },
     name: {
         type: String,
@@ -20,7 +21,7 @@ const productSchema = new Schema({
         unique: true
     },
     categoryId: {
-        type: Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: "Category",
         required: [true, "Category is required!"]
     },

@@ -5,7 +5,7 @@ const cookieParser = require('cookie-parser')
 const http = require('http')
 const morgan = require('morgan')
 const { dbConnect } = require('./utiles/db')
-
+const { rootRouter } = require('./routes/rootRouter')
 const server = http.createServer(app)
 app.use(cors({
     origin : ['http://localhost:3000','http://localhost:3001'],
@@ -18,6 +18,7 @@ app.use(morgan('dev'))
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use('/api', rootRouter)
 
 app.use('/api', require('./routes/authRoutes'))
 app.use('/api', require('./routes/dashboard/sellerRouters'))

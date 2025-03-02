@@ -1,38 +1,19 @@
 const {Schema, model} = require("mongoose");
-
+require('./userModel');
+require('./productModel')
 const wishlistSchema = new Schema({
     userId: {
-        type: String,
-        required : true
+        type: Schema.Types.ObjectId,
+        required : true,
+        ref: "User"
     },
     productId: {
-        type: String,
-        required : true
-    },
-    name: {
-        type: String,
-        required : true 
-    },
-    price: {
-        type: Number,
-        required : true
-    }, 
-    slug: {
-        type: String,
-        required : true 
-    },
-    discount: {
-        type: Number,
-        required : true 
-    },
-    image: {
-        type: String,
-        required : true 
-    },
-    rating: {
-        type: Number,
-        default : 0 
-    },
+        type: Schema.Types.ObjectId,
+        required : true,
+        ref: 'products'
+    }
 },{ timestamps: true })
 
 module.exports = model('wishlists',wishlistSchema)
+
+  
