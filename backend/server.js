@@ -22,6 +22,7 @@ app.use(cookieParser());
 app.use('/api', require('./routes/authRoutes'))
 app.use('/api', require('./routes/dashboard/sellerRouters'))
 app.use('/api', require('./routes/dashboard/categoryRouters'))
+app.use('/api', require('./routes/dashboard/productRouters'))
  
 const port = process.env.PORT
 dbConnect()

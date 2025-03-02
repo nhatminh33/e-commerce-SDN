@@ -7,7 +7,6 @@ const add_category = async (req, res) => {
     const form = formidable();
 
     try {
-        // Parse form data với Promise
         const [fields, files] = await form.parse(req);
 
         const { name } = fields;
@@ -17,7 +16,7 @@ const add_category = async (req, res) => {
             return responseReturn(res, 400, { error: 'Name and image are required' });
         }
 
-        const trimmedName = name[0].trim(); 
+        const trimmedName = name[0].trim();
         const slug = trimmedName.split(' ').join('-');
 
         const result = await cloudinaryService.uploader.upload(image[0].filepath, { folder: 'categories' });
@@ -42,13 +41,13 @@ const add_category = async (req, res) => {
 const get_categories = async (req, res) => {
     try {
         const { page: pageInput, searchValue, perPage: perPageInput } = req.body || {};
-        
+
         const page = Math.max(1, Number(pageInput) || 1);
         const perPage = Math.max(1, Number(perPageInput) || 10);
         const skipPage = (page - 1) * perPage;
 
         const query = searchValue
-            ? { name: { $regex: searchValue, $options: 'i' } } 
+            ? { name: { $regex: searchValue, $options: 'i' } }
             : {};
 
         const [categorys, totalCategory] = await Promise.all([
@@ -76,7 +75,7 @@ const get_category = async (req, res) => {
         const category = await categoryModel.findById(id)
         responseReturn(res, 200, { category })
     } catch (error) {
-        responseReturn(res, 500, { error: 'Internal Server Error' })
+        responseReturn(res, 500, { error: error.message })
     }
 }
 
@@ -86,33 +85,50 @@ const update_category = async (req, res) => {
         if (err) {
             responseReturn(res, 404, { error: 'something went wrong' })
         } else {
-            let { name } = fields
-            let { image } = files
             const { id } = req.params;
+            const { name } = fields;
+            const { image } = files;
 
-            name = name.trim()
-            const slug = name.split(' ').join('-')
+            if (!name || !name[0] || !image || !image[0]) {
+                return responseReturn(res, 400, { error: 'Name and image are required' });
+            }
+
+            const categoryData = await categoryModel.findById(id)
+
+            if (!categoryData) {
+                return responseReturn(res, 404, { error: 'Category not found' });
+            }
 
             try {
-                let result = null;
-                if (image) {
-                    result = await cloudinaryService.uploader.upload(image.filepath, { folder: 'categorys' })
+                const trimmedName = name[0].trim();
+                const slug = trimmedName.split(' ').join('-');
+
+
+                const result = await cloudinaryService.uploader.upload(image[0].filepath, { folder: 'categories' });
+
+                if (!result) {
+                    return responseReturn(res, 500, { error: 'Image upload failed' });
                 }
 
+                await cloudinaryService.uploader.destroy(categoryData.image);
+
                 const updateData = {
-                    name,
+                    trimmedName,
                     slug,
                 }
 
-                if (result) {
-                    updateData.image = result.url;
+                if (categoryData.image) {
+                    const publicId = categoryData.image.split('/').pop().split('.')[0];
+                    await cloudinaryService.uploader.destroy(`categories/${publicId}`);
                 }
 
+                updateData.image = result.url;
+
                 const category = await categoryModel.findByIdAndUpdate(id, updateData, { new: true });
-                responseReturn(res, 200, { category, message: 'Category Updated successfully' })
+                responseReturn(res, 200, { category, message: 'Category updated successfully' })
 
             } catch (error) {
-                responseReturn(res, 500, { error: 'Internal Server Error' })
+                responseReturn(res, 500, { error: error.message })
             }
 
         }
@@ -133,7 +149,7 @@ const delete_category = async (req, res) => {
 
     } catch (error) {
         console.log(`Error delete category with id ${categoryId}:`, error);
-        res.status(500).json({ message: 'Internal Server Error' });
+        res.status(500).json({ message: error.message });
     }
 
 }
