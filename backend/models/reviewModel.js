@@ -5,8 +5,8 @@ const reviewSchema = new Schema({
         type: Schema.ObjectId,
         required : true
     },
-    name: {
-        type: String,
+    userId: {
+        type: Schema.ObjectId,
         required : true
     },
     rating: {
@@ -17,10 +17,10 @@ const reviewSchema = new Schema({
         type: String,
         required : true
     },
-    date: {
-        type: String,
-        required : true
-    } 
+    reply: {
+        type: Schema.ObjectId,
+        ref: 'reviews'
+    }
 },{ timestamps: true })
 
 module.exports = model('reviews',reviewSchema)

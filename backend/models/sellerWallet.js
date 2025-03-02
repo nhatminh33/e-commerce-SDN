@@ -2,7 +2,8 @@ const {Schema, model} = require("mongoose");
 
 const sellerWalletSchema = new Schema({
     sellerId: {
-        type: String,
+        type: Schema.ObjectId,
+        ref: 'user',
         required : true
     },
     amount: {
