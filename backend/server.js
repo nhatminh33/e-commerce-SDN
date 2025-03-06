@@ -21,6 +21,7 @@ app.use(cookieParser());
 app.use('/api', rootRouter)
 
 app.use('/api', require('./routes/authRoutes'))
+app.use('/api/address', require('./routes/addressRoutes'))
 app.use('/api', require('./routes/dashboard/sellerRouters'))
 app.use('/api', require('./routes/dashboard/categoryRouters'))
 app.use('/api', require('./routes/dashboard/productRouters'))
