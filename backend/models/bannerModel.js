@@ -3,6 +3,7 @@ const {Schema, model} = require("mongoose");
 const bannerSchema = new Schema({
     productId: {
         type: Schema.ObjectId,
+        ref: 'Product',
         required : true
     },
     banner: {

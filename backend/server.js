@@ -25,6 +25,7 @@ app.use('/api', require('./routes/dashboard/sellerRouters'))
 app.use('/api', require('./routes/dashboard/categoryRouters'))
 app.use('/api', require('./routes/dashboard/productRouters'))
 app.use("/api", require("./routes/chatRoutes"));
+app.use('/api', require('./routes/bannerRoutes'))
  
 const port = process.env.PORT
 dbConnect()
