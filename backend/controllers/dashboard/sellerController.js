@@ -2,7 +2,6 @@ const userModel = require("../../models/userModel");
 const { responseReturn } = require("../../utiles/response");
 const bcrypt = require('bcrypt');
 
-// 📌 Tạo seller
 const create_seller = async (req, res) => {
     const { name, email, password, paymentMethod, accountDetails } = req.body;
 
@@ -33,7 +32,6 @@ const create_seller = async (req, res) => {
     }
 };
 
-// 📌 Lấy thông tin một seller
 const get_seller = async (req, res) => {
     try {
         const { id } = req.params;
@@ -47,7 +45,6 @@ const get_seller = async (req, res) => {
     }
 };
 
-// 📌 Lấy danh sách seller có phân trang & tìm kiếm
 const get_sellers = async (req, res) => {
     try {
         const { page: pageInput, searchValue, status, perPage: perPageInput } = req.body || {};
@@ -84,7 +81,6 @@ const get_sellers = async (req, res) => {
     }
 };
 
-// 📌 Cập nhật trạng thái seller
 const update_seller_status = async (req, res) => {
     try {
         const { sellerId, status } = req.body;
@@ -103,7 +99,6 @@ const update_seller_status = async (req, res) => {
     }
 };
 
-// 📌 Cập nhật thông tin seller
 const update_seller_info = async (req, res) => {
     try {
         const { id } = req.params;
@@ -128,7 +123,6 @@ const update_seller_info = async (req, res) => {
     }
 };
 
-// 📌 Thay đổi mật khẩu seller
 const change_password = async (req, res) => {
     try {
         const { password, newPassword } = req.body;
@@ -161,7 +155,6 @@ const change_password = async (req, res) => {
     }
 };
 
-// 📌 Xóa seller
 const delete_seller = async (req, res) => {
     try {
         const { id } = req.params;
@@ -183,6 +176,36 @@ const delete_seller = async (req, res) => {
     }
 };
 
+const update_order_status = async (req, res) => {
+    try {
+        const { orderId, status } = req.body;
+        const sellerId = req.seller._id;
+        
+        if (!orderId || !status) {
+            return responseReturn(res, 400, { error: 'Order ID and new status are required' });
+        }
+        
+        // Tìm đơn hàng và kiểm tra nó thuộc về seller này không
+        const order = await orderModel.findOne({ _id: orderId, sellerId });
+        
+        if (!order) {
+            return responseReturn(res, 404, { error: 'Order not found or does not belong to you' });
+        }
+        
+        // Cập nhật trạng thái
+        order.status = status;
+        await order.save();
+        
+        responseReturn(res, 200, { 
+            message: 'Order status updated successfully',
+            order
+        });
+    } catch (error) {
+        console.error('Update order status error:', error);
+        responseReturn(res, 500, { error: error.message });
+    }
+};
+
 module.exports = {
     create_seller,
     get_seller,
@@ -190,5 +213,6 @@ module.exports = {
     update_seller_info,
     delete_seller,
     get_sellers,
-    change_password
+    change_password,
+    update_order_status
 };
