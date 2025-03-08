@@ -4,13 +4,27 @@ const {
     getProductById,
     addWishList,
     getWishListByUserId,
-    removeWishList
-} = require('../controllers/customerController')
+    removeProductFromWishList
+} = require('../controllers/customerController');
 
-customerRouter.get('/products', getAllProduct);
-customerRouter.get('/product/:id', getProductById)
-customerRouter.post('/wishlist', addWishList)
-customerRouter.get('/wishlist/:userId', getWishListByUserId)
-customerRouter.delete('/wishlist/:userId', removeWishList)
+const {
+    getCartByUserId,
+    addToCart,
+    removeManyItemFromCart,
+    updateCartItemQuantity,
+    clearCart,
+} = require('../controllers/cartController');
+
+customerRouter.get('/products', getAllProduct); //ok
+customerRouter.get('/product/:id', getProductById)//ok
+customerRouter.post('/wishlist', addWishList) //ok
+customerRouter.get('/wishlist/:userId', getWishListByUserId) //ok
+customerRouter.delete('/wishlist/:userId', removeProductFromWishList) //ok
+
+customerRouter.get('/cart/:userId', getCartByUserId)
+customerRouter.post('/add-to-cart', addToCart)
+customerRouter.put('/remove-many-item-from-cart', removeManyItemFromCart)
+customerRouter.put('/update-cart-item-quantity', updateCartItemQuantity)
+customerRouter.post('/clear-cart', clearCart)
 
 module.exports = { customerRouter }
