@@ -1,4 +1,4 @@
-const  mongoose = require("mongoose");
+const mongoose = require("mongoose");
 const cartModel = require("../models/cartModel");
 const productModel = require("../models/productModel");
 const { responseReturn } = require("../utiles/response");
@@ -33,24 +33,28 @@ const getCartByUserId = async (req, res) => {
           }
 
           return {
-              _id: product._id,
-              name: product.name || "Unknown",
-              price: product.price || 0,
-              discount: product.discount || 0,
-              stock: product.stock || 0,
-              images: product.images?.length ? product.images : ["https://example.com/default-image.jpg"],
-              category: product.categoryId ? { name: product.categoryId.name } : { name: "Unknown" },
-              description: product.description || "No description available",
-              rating: product.rating || 0,
-              quantity: cartItem.quantity,
-              total: cartItem.quantity * (product.price - (product.price * product.discount) / 100)
+              item: {
+                itemId: cartItem._id,
+                productId: product._id,
+                name: product.name || "Unknown",
+                price: product.price || 0,
+                discount: product.discount || 0,
+                stock: product.stock || 0,
+                images: product.images?.length ? product.images : ["https://example.com/default-image.jpg"],
+                category: product.categoryId ? { name: product.categoryId.name } : { name: "Unknown" },
+                description: product.description || "No description available",
+                rating: product.rating || 0,
+                quantity: cartItem.quantity,
+                total: cartItem.quantity * (product.price - (product.price * product.discount) / 100)
+              }
+              
           };
       }).filter(item => item !== null); // Loại bỏ null
 
       return res.status(200).json({
           success: true,
           message: "Cart retrieved successfully!",
-          products: productsInCart
+          cart: productsInCart
       });
 
   } catch (error) {
