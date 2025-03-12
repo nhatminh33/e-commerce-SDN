@@ -22,7 +22,7 @@ const admin_login = async (req, res) => {
             return responseReturn(res, 404, { error: "Password is incorrect" });
         }
         
-        const token = await createToken({ id: user._id.toString(), role: user.role });
+        const token = await createAccessToken({ id: user._id.toString(), role: user.role });
 
         res.cookie('accessToken', token, {
             expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
