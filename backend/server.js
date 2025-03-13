@@ -26,6 +26,7 @@ app.use('/api', require('./routes/dashboard/sellerRouters'))
 app.use('/api', require('./routes/dashboard/categoryRouters'))
 app.use('/api', require('./routes/dashboard/productRouters'))
 app.use('/api', require('./routes/dashboard/salaryRouters'))
+app.use('/api', require('./routes/dashboard/statisticsRouters'))
 app.use("/api", require("./routes/chatRoutes"));
 app.use('/api', require('./routes/bannerRoutes'))
  
