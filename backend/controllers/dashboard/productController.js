@@ -169,4 +169,128 @@ const delete_product = async (req, res) => {
     }
 }
 
-module.exports = { add_product, get_products, get_product, update_product, update_product_image, delete_product }
+const seller_manage_products = async (req, res) => {
+    try {
+        const sellerId = req.id;
+        const { page = 1, perPage = 10, searchValue = '', categoryId = '', sortBy = ['createdAt'], sortOrder = 'desc' } = req.query;
+        console.log("sellerId", req.id);
+    
+        // Xây dựng query tìm kiếm
+        const query = { sellerId };
+
+        // Tìm kiếm theo tên sản phẩm
+        if (searchValue) {
+            query.name = { $regex: searchValue, $options: 'i' };
+        }
+
+        // Lọc theo danh mục
+        if (categoryId) {
+            query.categoryId = categoryId;
+        }
+
+        // Tính toán phân trang
+        const skip = (parseInt(page) - 1) * parseInt(perPage);
+        const limit = parseInt(perPage);
+
+        // Lấy danh sách sản phẩm
+        let products = await productModel.find(query)
+            .populate('categoryId')
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+        // Đếm tổng số sản phẩm thỏa mãn điều kiện
+        const totalProducts = await productModel.countDocuments(query);
+        const totalPages = Math.ceil(totalProducts / limit);
+
+        // Lấy thông tin doanh thu từ mỗi sản phẩm
+        const orderInfo = await Promise.all(products.map(async (product) => {
+            // Tính tổng doanh thu từ các đơn hàng đã hoàn thành
+            const orders = await require('../../models/orderModel').find({
+                'products.productId': product._id,
+                'delivery_status': 'delivered',
+                'payment_status': 'paid'
+            });
+
+            // Tính tổng doanh thu
+            let totalRevenue = 0;
+            orders.forEach(order => {
+                order.products.forEach(item => {
+                    if (item.productId.toString() === product._id.toString()) {
+                        totalRevenue += item.subTotal;
+                    }
+                });
+            });
+
+            return {
+                productId: product._id,
+                totalRevenue
+            };
+        }));
+
+        // Kết hợp thông tin doanh thu vào sản phẩm
+        products = products.map(product => {
+            const revenue = orderInfo.find(item => item.productId.toString() === product._id.toString());
+            return {
+                ...product,
+                totalRevenue: revenue ? revenue.totalRevenue : 0
+            };
+        });
+
+        // Xử lý sortBy là một mảng
+        const sortByArray = Array.isArray(sortBy) ? sortBy : [sortBy];
+        const sortOrderValue = sortOrder === 'asc' ? 1 : -1;
+
+        // Sắp xếp theo nhiều tiêu chí
+        products.sort((a, b) => {
+            // Xử lý từng tiêu chí sắp xếp theo thứ tự ưu tiên
+            for (const criterion of sortByArray) {
+                let compareResult = 0;
+                
+                switch (criterion) {
+                    case 'totalRevenue':
+                        compareResult = (a.totalRevenue - b.totalRevenue) * sortOrderValue;
+                        break;
+                    case 'discount':
+                        compareResult = (a.discount - b.discount) * sortOrderValue;
+                        break;
+                    case 'stock':
+                        compareResult = (a.stock - b.stock) * sortOrderValue;
+                        break;
+                    case 'rating':
+                        compareResult = (a.rating - b.rating) * sortOrderValue;
+                        break;
+                    case 'price':
+                        compareResult = (a.price - b.price) * sortOrderValue;
+                        break;
+                    case 'createdAt':
+                        compareResult = (new Date(a.createdAt) - new Date(b.createdAt)) * sortOrderValue;
+                        break;
+                }
+                
+                // Nếu có sự khác biệt theo tiêu chí này, trả về kết quả và không xét tiêu chí tiếp theo
+                if (compareResult !== 0) {
+                    return compareResult;
+                }
+            }
+            
+            // Nếu tất cả các tiêu chí đều bằng nhau, giữ nguyên vị trí
+            return 0;
+        });
+
+        responseReturn(res, 200, {
+            products,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages,
+                totalProducts,
+                perPage: parseInt(perPage)
+            }
+        });
+    } catch (error) {
+        console.error('Seller manage products error:', error);
+        responseReturn(res, 500, { error: error.message });
+    }
+};
+
+module.exports = { add_product, get_products, get_product, update_product, update_product_image, delete_product, seller_manage_products }
