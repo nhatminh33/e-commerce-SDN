@@ -234,28 +234,29 @@ const updateCartItemQuantity = async (req, res) => {
   }
 };
 
-  const clearCart = async (userId) => {
+  const clearCart = async (req, res) => {
+    const { userId } = req.body;
     try {
       if (!userId) {
-        return {
+        return res.status(400).json({ 
           success: false,
           message: "Invalid user ID"
-        };
+        });
       }
   
       const result = await cartModel.deleteMany({ userId });
       
-      return {
+      return res.status(200).json({
         success: true,
         message: `Cart cleared successfully. ${result.deletedCount} items removed`,
         itemsRemoved: result.deletedCount
-      };
+      });
     } catch (error) {
-      return {
+      return res.status(500).json({
         success: false,
         message: "Failed to clear cart",
         error: error.message
-      };
+      });
     }
   };
 
