@@ -1,16 +1,24 @@
+
 const authenticateToken = require("./authenticateToken");
+const userModel = require("../models/userModel");
 
 const systemMiddleware = async (req, res, next) => {
     authenticateToken(req, res, async () => {
-        const allowedRoles = ['admin', 'seller'];
-        if (!allowedRoles.includes(req.user.role)) {
-            return res.status(403).json({ message: 'Access denied, only admin or seller allowed' });
+        try {
+            const allowedRoles = ["admin", "seller"];
+            if (!allowedRoles.includes(req.user.role)) {
+                return res.status(403).json({ message: "Access denied, only admin or seller allowed" });
+            }
+
+            const user = await userModel.findById(req.user.id).select("_id role");
+            if (!user) {
+                return res.status(404).json({ message: "User not found" });
+            }
+
+            next();
+        } catch (error) {
+            return res.status(500).json({ message: "Internal server error", error: error.message });
         }
-        const model = req.user.role === 'admin' ? adminModel : sellerModel;
-        const user = await model.findById(req.user.id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        req.user = { id: user._id, role: user.role };
-        next();
     });
 };
 
