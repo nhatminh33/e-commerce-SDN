@@ -1,10 +1,10 @@
 const authenticateToken = require("./authenticateToken");
 const userModel = require("../models/userModel");
 
-const adminMiddleware = async (req, res, next) => {
+const sellerMiddleware = async (req, res, next) => {
   authenticateToken(req, res, async () => {
-    if (req.role !== 'admin') {
-      return res.status(403).json({ message: 'Access denied, only admin allowed' });
+    if (req.role !== 'seller') {
+      return res.status(403).json({ message: 'Access denied, only seller allowed' });
     }
 
     const user = await userModel.findById(req.id).select("id role");
@@ -17,4 +17,4 @@ const adminMiddleware = async (req, res, next) => {
   });
 };
 
-module.exports = adminMiddleware;
+module.exports = sellerMiddleware;

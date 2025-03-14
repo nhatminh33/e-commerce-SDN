@@ -29,23 +29,27 @@ class ChatController {
     const { text, sellerId, name } = req.body;
     const userId = req.id;
 
-    try {
-      const isValid = await validateChat(req, sellerId, [
-        ["customer", "seller"],
-      ]);
-      if (!isValid)
-        return responseReturn(res, 403, { error: "Unauthorized chat." });
+    console.log("Request Body:", req.body);  // Debugging: Print entire request body
+    console.log("Extracted sellerId:", sellerId);  // Debugging: Check if sellerId is defined
 
-      const message = await sellerCustomerMessage.create({
-        senderId: userId,
-        senderName: name,
-        receverId: sellerId,
-        message: text,
-      });
-      responseReturn(res, 201, { message });
+    if (!sellerId) {
+        return responseReturn(res, 400, { error: "Missing sellerId in request" });
+    }
+
+    try {
+        const isValid = await this.validateChat(req, sellerId, [["customer", "seller"]]);
+        if (!isValid) return responseReturn(res, 403, { error: "Unauthorized chat." });
+
+        const message = await sellerCustomerMessage.create({
+            senderId: userId,
+            senderName: name,
+            receverId: sellerId,
+            message: text,
+        });
+        responseReturn(res, 201, { message });
     } catch (error) {
-      console.log(error);
-      responseReturn(res, 500, { error: "Internal server error" });
+        console.log(error);
+        responseReturn(res, 500, { error: "Internal server error" });
     }
   };
 
@@ -54,7 +58,7 @@ class ChatController {
     const senderId = req.id;
 
     try {
-      const isValid = await validateChat(req, receverId, [
+      const isValid = await this.validateChat(req, receverId, [
         ["customer", "seller"],
         ["seller", "customer"],
         ["seller", "admin"],
@@ -82,7 +86,7 @@ class ChatController {
     const senderId = req.id;
 
     try {
-      const isValid = await validateChat(req, receverId, [
+      const isValid = await this.validateChat(req, receverId, [
         ["admin", "seller"],
         ["seller", "admin"],
       ]);
