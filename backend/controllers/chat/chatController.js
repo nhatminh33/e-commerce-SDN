@@ -5,19 +5,17 @@ const { responseReturn } = require("../../utiles/response");
 
 const { ObjectId } = require("mongoose").Types;
 class ChatController {
-  validateChat = async (senderId, receiverId, allowedRoles) => {
+  validateChat = async (req, receiverId, allowedRoles) => {
     try {
+      const senderId = req.id;
       console.log("Raw Sender ID:", senderId);
       console.log("Raw Receiver ID:", receiverId);
-  
+
       const sender = await userModel.findById(new ObjectId(senderId));
       const receiver = await userModel.findById(new ObjectId(receiverId));
-  
-      console.log("Sender:", sender);
-      console.log("Receiver:", receiver);
-  
+
       if (!sender || !receiver) return false;
-  
+
       return allowedRoles.some(
         (roles) => sender.role === roles[0] && receiver.role === roles[1]
       );
@@ -28,11 +26,16 @@ class ChatController {
   };
 
   customer_message_add = async (req, res) => {
-    const { userId, text, sellerId, name } = req.body;
+    const { text, sellerId, name } = req.body;
+    const userId = req.id;
+
     try {
-      const isValid = await this.validateChat(userId, sellerId, [["customer", "seller"]]);
-      if (!isValid) return responseReturn(res, 403, { error: "Unauthorized chat." });
-      
+      const isValid = await validateChat(req, sellerId, [
+        ["customer", "seller"],
+      ]);
+      if (!isValid)
+        return responseReturn(res, 403, { error: "Unauthorized chat." });
+
       const message = await sellerCustomerMessage.create({
         senderId: userId,
         senderName: name,
@@ -42,20 +45,25 @@ class ChatController {
       responseReturn(res, 201, { message });
     } catch (error) {
       console.log(error);
+      responseReturn(res, 500, { error: "Internal server error" });
     }
   };
 
   message_add = async (req, res) => {
-    const { senderId, receverId, text, name } = req.body;
+    const { text, receverId, name } = req.body;
+    const senderId = req.id;
+
     try {
-      const isValid = await this.validateChat(senderId, receverId, [
+      const isValid = await validateChat(req, receverId, [
         ["customer", "seller"],
         ["seller", "customer"],
         ["seller", "admin"],
-        ["admin", "seller"]
+        ["admin", "seller"],
       ]);
-      if (!isValid) return responseReturn(res, 403, { error: "Unauthorized chat." });
-      
+
+      if (!isValid)
+        return responseReturn(res, 403, { error: "Unauthorized chat." });
+
       const message = await sellerCustomerMessage.create({
         senderId,
         senderName: name,
@@ -65,48 +73,60 @@ class ChatController {
       responseReturn(res, 201, { message });
     } catch (error) {
       console.log(error);
+      responseReturn(res, 500, { error: "Internal server error" });
     }
   };
 
-  admin_message_insert = async (req, res) => {
-    const { senderId, receverId, message, senderName } = req.body;
+  admin_message_add = async (req, res) => {
+    const { receverId, message, senderName } = req.body;
+    const senderId = req.id;
+
     try {
-      const isValid = await this.validateChat(senderId, receverId, [["admin", "seller"], ["seller", "admin"]]);
-      if (!isValid) return responseReturn(res, 403, { error: "Unauthorized chat." });
-      
+      const isValid = await validateChat(req, receverId, [
+        ["admin", "seller"],
+        ["seller", "admin"],
+      ]);
+      if (!isValid)
+        return responseReturn(res, 403, { error: "Unauthorized chat." });
+
       const messageData = await adminSellerMessage.create({
         senderId,
         receverId,
         message,
         senderName,
       });
-      responseReturn(res, 200, { message: messageData });
+      responseReturn(res, 201, { message: messageData });
     } catch (error) {
       console.log(error);
+      responseReturn(res, 500, { error: "Internal server error" });
     }
   };
 
   get_messages = async (req, res) => {
     const { userId, otherUserId } = req.params;
     try {
-      const customerSellerMessages = await sellerCustomerMessage.find({
-        $or: [
-          { senderId: userId, receverId: otherUserId },
-          { senderId: otherUserId, receverId: userId },
-        ],
-      }).sort({ createdAt: 1 });
-      
-      const adminSellerMessages = await adminSellerMessage.find({
-        $or: [
-          { senderId: userId, receverId: otherUserId },
-          { senderId: otherUserId, receverId: userId },
-        ],
-      }).sort({ createdAt: 1 });
-      
+      const customerSellerMessages = await sellerCustomerMessage
+        .find({
+          $or: [
+            { senderId: userId, receverId: otherUserId },
+            { senderId: otherUserId, receverId: userId },
+          ],
+        })
+        .sort({ createdAt: 1 });
+
+      const adminSellerMessages = await adminSellerMessage
+        .find({
+          $or: [
+            { senderId: userId, receverId: otherUserId },
+            { senderId: otherUserId, receverId: userId },
+          ],
+        })
+        .sort({ createdAt: 1 });
+
       const messages = [...customerSellerMessages, ...adminSellerMessages].sort(
         (a, b) => a.createdAt - b.createdAt
       );
-      
+
       responseReturn(res, 200, { messages });
     } catch (error) {
       console.log(error);
@@ -119,13 +139,19 @@ class ChatController {
       const messages = await sellerCustomerMessage.find({
         $or: [{ senderId: userId }, { receverId: userId }],
       });
-      
-      const participantIds = new Set(messages.map(msg =>
-        msg.senderId.toString() === userId ? msg.receverId.toString() : msg.senderId.toString()
-      ));
-      
-      const participants = await userModel.find({ _id: { $in: Array.from(participantIds) } });
-      
+
+      const participantIds = new Set(
+        messages.map((msg) =>
+          msg.senderId.toString() === userId
+            ? msg.receverId.toString()
+            : msg.senderId.toString()
+        )
+      );
+
+      const participants = await userModel.find({
+        _id: { $in: Array.from(participantIds) },
+      });
+
       responseReturn(res, 200, { participants });
     } catch (error) {
       console.log(error);
