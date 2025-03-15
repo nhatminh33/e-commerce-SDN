@@ -1,4 +1,5 @@
 const { formidable } = require('formidable');
+import { get_product } from './../../../dashboard/src/store/Reducers/productReducer';
 const { responseReturn } = require("../../utiles/response");
 const cloudinaryService = require('../../utiles/cloudinaryService');
 const productModel = require('../../models/productModel');
@@ -49,15 +50,55 @@ const add_product = async (req, res) => {
 
 const get_products = async (req, res) => {
     try {
-        const { page: pageInput, searchValue, perPage: perPageInput } = req.body || {};
+        const { 
+            page: pageInput, 
+            searchValue, 
+            perPage: perPageInput,
+            categoryId,
+            minPrice,
+            maxPrice,
+            minDiscount,
+            sortBy = 'createdAt',
+            sortOrder = 'desc'
+        } = req.body || {};
 
         const page = Math.max(1, Number(pageInput) || 1);
         const perPage = Math.max(1, Number(perPageInput) || 10);
         const skipPage = (page - 1) * perPage;
 
-        const query = searchValue
-            ? { name: { $regex: searchValue, $options: 'i' } }
-            : {};
+        // Xây dựng query filter
+        let query = {};
+
+        // Tìm kiếm theo tên
+        if (searchValue) {
+            query.name = { $regex: searchValue, $options: 'i' };
+        }
+
+        // Lọc theo danh mục
+        if (categoryId) {
+            query.categoryId = categoryId;
+        }
+
+
+        // Lọc theo khoảng giá
+        if (minPrice !== undefined || maxPrice !== undefined) {
+            query.price = {};
+            if (minPrice !== undefined) {
+                query.price.$gte = Number(minPrice);
+            }
+            if (maxPrice !== undefined) {
+                query.price.$lte = Number(maxPrice);
+            }
+        }
+
+        // Lọc theo giảm giá tối thiểu
+        if (minDiscount !== undefined) {
+            query.discount = { $gte: Number(minDiscount) };
+        }
+
+        // Xác định thứ tự sắp xếp
+        const sort = {};
+        sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
 
         const [products, totalProduts] = await Promise.all([
             productModel
@@ -65,17 +106,23 @@ const get_products = async (req, res) => {
                 .populate('categoryId')
                 .skip(skipPage)
                 .limit(perPage)
-                .sort({ createdAt: -1 })
+                .sort(sort)
                 .lean(),
             productModel.countDocuments(query)
         ]);
 
         const pages = Math.ceil(totalProduts / perPage);
 
-        responseReturn(res, 200, { products, totalProduts, pages });
+        responseReturn(res, 200, { 
+            products, 
+            totalProduts, 
+            pages,
+            currentPage: page,
+            perPage
+        });
     } catch (error) {
-        console.error('Get categories error:', error);
-        responseReturn(res, 500, { error: `Failed to retrieve categories: ${error.message}` });
+        console.error('Get products error:', error);
+        responseReturn(res, 500, { error: `Failed to retrieve products: ${error.message}` });
     }
 };
 
