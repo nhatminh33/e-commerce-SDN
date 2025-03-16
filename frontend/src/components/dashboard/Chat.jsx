@@ -24,9 +24,9 @@ const Chat = () => {
     const [activeSeller,setActiveSeller] = useState([])
     const [show, setShow] = useState(false)
     
-    useEffect(() => {
-        socket.emit('add_user',userInfo.id, userInfo)
-    },[])
+    // useEffect(() => {
+    //     socket.emit('add_user',userInfo.id, userInfo)
+    // },[])
 
     useEffect(() => {
         dispatch(add_friend({
@@ -56,12 +56,12 @@ const Chat = () => {
         })
     },[])
 
-    useEffect(() => {
-        if (successMessage) {
-            socket.emit('send_customer_message',fb_messages[fb_messages.length - 1])
-            dispatch(messageClear())
-        }
-    },[successMessage])
+    // useEffect(() => {
+    //     if (successMessage) {
+    //         socket.emit('send_customer_message',fb_messages[fb_messages.length - 1])
+    //         dispatch(messageClear())
+    //     }
+    // },[successMessage])
 
     useEffect(() => {
         if (receverMessage) {

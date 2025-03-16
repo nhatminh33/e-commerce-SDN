@@ -6,12 +6,12 @@ const { responseReturn } = require('../utiles/response');
 const { sendVerificationEmail } = require('../utiles/emailService');
 const formidable = require('formidable');
 const addressModel = require('../models/addressModel');
+const accountModel = require('../models/accountModel');
 
 const admin_login = async (req, res) => {
     const { email, password } = req.body;
     try {
         const user = await userModel.findOne({ email, role: { $in: ["admin", "seller"] } }).select('+password');
-        console.log('user', user);
         
         if (!user) {
             return responseReturn(res, 404, { error: "Email not found or access denied" });
@@ -38,19 +38,18 @@ const admin_login = async (req, res) => {
 
 const logout = async (req, res) => {
     try {
-        res.cookie('accessToken', '', {
-            expires: new Date(0),
-            httpOnly: true,
-            sameSite: 'strict'
-        });
+        const userId = req.id;
         
-        res.cookie('refreshToken', '', {
-            expires: new Date(0),
-            httpOnly: true,
-            sameSite: 'strict'
-        });
+        // Tìm và hủy refresh token
+        const account = await accountModel.findByUserId(userId);
+        if (account) {
+            await account.revokeToken();
+        }
         
-        return responseReturn(res, 200, { message: 'Logout successful' });
+        // Xóa cookies
+        res.clearCookie('accessToken');
+        
+        return responseReturn(res, 200, { message: "Logout successful" });
     } catch (error) {
         return responseReturn(res, 500, { error: error.message });
     }
@@ -225,21 +224,29 @@ const customer_login = async (req, res) => {
         const accessToken = await createAccessToken(tokenData);
         const refreshToken = await createRefreshToken(tokenData);
 
-        // Set cookies
+        // Lưu refresh token vào model Account
+        let account = await accountModel.findByUserId(user._id);
+        if (account) {
+            // Cập nhật token mới nếu tài khoản đã tồn tại
+            await account.updateRefreshToken(refreshToken, 30 * 24 * 60 * 60 * 1000); // 30 ngày
+        } else {
+            // Tạo mới account nếu chưa tồn tại
+            account = new accountModel({
+                userId: user._id,
+                refreshToken: refreshToken,
+                expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 ngày
+            });
+            await account.save();
+        }
+
+        // Set cookie chỉ cho access token (KHÔNG gửi refresh token)
         res.cookie('accessToken', accessToken, {
             expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
             httpOnly: true,
             sameSite: 'strict'
         });
 
-        res.cookie('refreshToken', refreshToken, {
-            expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-            httpOnly: true,
-            sameSite: 'strict'
-        });
-
-        return responseReturn(res, 200, { message: "Login successful" });
-
+        return responseReturn(res, 200, { message: "Login successful", token: accessToken });
     } catch (error) {
         return responseReturn(res, 500, { error: error.message });
     }

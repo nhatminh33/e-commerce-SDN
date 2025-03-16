@@ -1,5 +1,4 @@
 const { formidable } = require('formidable');
-import { get_product } from './../../../dashboard/src/store/Reducers/productReducer';
 const { responseReturn } = require("../../utiles/response");
 const cloudinaryService = require('../../utiles/cloudinaryService');
 const productModel = require('../../models/productModel');

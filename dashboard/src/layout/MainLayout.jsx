@@ -11,13 +11,13 @@ const MainLayout = () => {
     const dispatch = useDispatch()
     const {userInfo } = useSelector(state => state.auth)
 
-    useEffect(() => {
-        if (userInfo && userInfo.role === 'seller') {
-            socket.emit('add_seller', userInfo._id,userInfo)
-        } else {
-            socket.emit('add_admin', userInfo)
-        }
-    },[userInfo])
+    // useEffect(() => {
+    //     if (userInfo && userInfo.role === 'seller') {
+    //         socket.emit('add_seller', userInfo._id,userInfo)
+    //     } else {
+    //         socket.emit('add_admin', userInfo)
+    //     }
+    // },[userInfo])
 
     useEffect(() => {
         socket.on('activeCustomer',(customers)=>{

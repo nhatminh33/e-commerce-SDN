@@ -6,9 +6,8 @@ export const customer_register = createAsyncThunk(
     'auth/customer_register',
     async(info, { rejectWithValue,fulfillWithValue }) => {
         try {
-            const {data} = await api.post('/customer/customer-register',info)
-            localStorage.setItem('customerToken',data.token)
-           // console.log(data)
+            const {data} = await api.post('/customer-register',info)
+            // Don't store token for new registrations as they need email verification
             return fulfillWithValue(data)
         } catch (error) {
             return rejectWithValue(error.response.data)
@@ -21,11 +20,19 @@ export const customer_login = createAsyncThunk(
     'auth/customer_login',
     async(info, { rejectWithValue,fulfillWithValue }) => {
         try {
-            const {data} = await api.post('/customer/customer-login',info)
+            const {data} = await api.post('/customer-login',info)
+            // If there's a verification problem, the error will be thrown in the catch block
+            // So if we get here, we can safely store the token
             localStorage.setItem('customerToken',data.token)
-           // console.log(data) 
             return fulfillWithValue(data)
         } catch (error) {
+            // Check if the error is related to email verification
+            if (error.response.data?.isEmailVerified === false) {
+                return rejectWithValue({
+                    error: "Please verify your email before logging in",
+                    isEmailVerified: false
+                })
+            }
             return rejectWithValue(error.response.data)
         }
     }
@@ -73,10 +80,9 @@ export const authReducer = createSlice({
             state.loader = false;
         })
         .addCase(customer_register.fulfilled, (state, { payload }) => {
-            const userInfo = decodeToken(payload.token)
-            state.successMessage = payload.message;
+            state.successMessage = payload.message || "Registration successful. Please check your email to verify your account.";
             state.loader = false;
-            state.userInfo = userInfo
+            // Don't set userInfo for new registrations since they need email verification
         })
 
         .addCase(customer_login.pending, (state, { payload }) => {

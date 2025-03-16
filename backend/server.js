@@ -13,8 +13,9 @@ app.use(cors({
 }))
 
 require('dotenv').config()
-
-app.use(morgan('dev'))
+app.use(morgan('dev', {
+    skip: (req) => req.originalUrl.startsWith('/socket.io')
+  }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

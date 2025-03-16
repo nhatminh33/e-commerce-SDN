@@ -40,12 +40,12 @@ const ChatSeller = () => {
         }
     },[sellerId])
 
-    useEffect(() => {
-        if (successMessage) {
-            socket.emit('send_message_admin_to_seller',seller_admin_message[seller_admin_message.length - 1])
-            dispatch(messageClear())
-        }
-    },[successMessage])
+    // useEffect(() => {
+    //     if (successMessage) {
+    //         socket.emit('send_message_admin_to_seller',seller_admin_message[seller_admin_message.length - 1])
+    //         dispatch(messageClear())
+    //     }
+    // },[successMessage])
 
     useEffect(() => {
         socket.on('receved_seller_message', msg => {
