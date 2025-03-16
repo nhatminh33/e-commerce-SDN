@@ -23,7 +23,7 @@ router.post('/refresh-token', refresh_token);
 router.post('/logout', logout);
 
 // Protected routes
-router.use(authMiddleware);
+// router.use(authMiddleware);
 router.get('/get-user', get_user);
 router.post('/profile-image-upload', profile_image_upload);
 router.put('/update-profile', update_profile);

@@ -34,7 +34,10 @@ const orderSchema = new Schema({
     payment_status: {
         type: String,
         required : true ,
-        enum : ["canceled", "paid"] 
+        enum : ["canceled", "paid", "pending"] 
+    },
+    payment_method: {
+        type: String
     },
     shippingInfo: {
         fullName: {
