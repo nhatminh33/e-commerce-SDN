@@ -1,6 +1,7 @@
 const moment = require('moment');
 const Order = require('../models/orderModel');
-
+const orderModel = require('../models/orderModel');
+const {sendMail} = require('../controllers/mailController');
 function sortObject(obj) {
     let sorted = {};
     let str = [];
@@ -35,11 +36,14 @@ module.exports.createPayment = async (req, res) => {
 
     // let { wid, userId, totalPrice, fullName, phoneNumber, country } = req.body;
 
-    // let order = await Order.findOne({ wid });
+    let order = await orderModel.findOne({ _id: req.body.orderId});
 
-    // if (!order) {
-    //     return res.status(400).json({ message: 'Order not found' });
-    // }
+    if (!order) {
+        return res.status(400).json({ message: 'Order not found' });
+    }
+    if (order.payment_status !== 'pending' && order.payment_status !== 'failed' && order.delivery_status !== 'pending') {
+        return res.status(400).json({ message: 'Order is not pending' });
+    }    
  
     let orderId = req.body.orderId;
     let amount = req.body.amount;
@@ -106,11 +110,11 @@ module.exports.vnpayIpn = async (req, res) => {
         if (rspCode === "00") {
             await Order.updateOne({ _id: orderId }, { 
                 payment_status: "paid", 
-                delivery_status: "processing" 
+                delivery_status: "shipping" 
             });
             return res.status(200).json({ RspCode: '00', Message: 'Success' });
         } else {
-            await Order.updateOne({ _id: orderId }, { payment_status: "cancelled" });
+            await Order.updateOne({ _id: orderId }, { payment_status: "failed" });
             return res.status(200).json({ RspCode: '00', Message: 'Payment failed' });
         }
     } else {
@@ -136,24 +140,38 @@ module.exports.returnVnpay = async (req, res) => {
     let signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
 
     if (secureHash === signed) {
-        let order = await Order.findById(orderId);
+        let order = await orderModel.findById(orderId);
         if (!order) {
             return res.json({ success: false, message: "Order not found" });
         }
+        let productList = order.products.map(p => `${p.productId.name} (x${p.quantity})`).join(', ');
 
         if (vnp_Params['vnp_ResponseCode'] === '00') {
-            await Order.updateOne({ _id: orderId }, { 
+            await orderModel.updateOne({ _id: orderId }, { 
                 payment_status: "paid", 
-                delivery_status: "processing" 
+                delivery_status: "shipping" 
             });
+            await sendMail({
+                email: order.shippingInfo.email,
+                subject: "Thanh toán đơn hàng thành công!",
+                html: `<p style="font-size: 20px; font-weight: bold; color: green">Đơn hàng của bạn đã được thanh toán thành công.</p>
+                        <p><strong>Mã đơn hàng: ${orderId}</strong></p>
+                       <p><strong>Sản phẩm:</strong> ${productList}</p>
+                       <p><strong>Tổng tiền:</strong> ${order.totalPrice} VND</p>
+                       <p><strong>Ngày thanh toán:</strong> ${order.date}</p>
+                       <p><strong>Địa chỉ giao hàng:</strong> ${order.shippingInfo.address}, ${order.shippingInfo.city}, ${order.shippingInfo.country}</p>
+                    `
+            })
             return res.json({ success: true, message: "Thanh toán thành công" });
         } else if (vnp_Params['vnp_ResponseCode'] === '24') {
-            await Order.updateOne({ _id: orderId }, { payment_status: "cancelled" });
+            await orderModel.updateOne({ _id: orderId }, { payment_status: "failed" });
             return res.json({ success: true, message: "Thanh toán không thành công do hủy" });
         } else {
+            await orderModel.updateOne({ _id: orderId }, { payment_status: "failed" });
             return res.json({ success: false, message: "Thanh toán thất bại!" });
         }
     } else {
+        await orderModel.updateOne({ _id: orderId }, { payment_status: "failed" });
         return res.json({ success: false, message: "Sai chữ ký bảo mật!" });
     }
 };
