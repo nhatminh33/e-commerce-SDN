@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import Pagination from '../Pagination';
 import { FaEye } from "react-icons/fa";
 import { useDispatch, useSelector } from 'react-redux';
-import { get_deactive_sellers } from '../../store/Reducers/sellerReducer';
 
 const DeactiveSellers = () => {
 
@@ -24,7 +23,7 @@ const DeactiveSellers = () => {
             page: parseInt(currentPage),
             searchValue
         }
-        dispatch(get_deactive_sellers(obj))
+        // dispatch(get_deactive_sellers(obj))
     },[searchValue,currentPage,parPage])
 
 

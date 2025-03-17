@@ -3,7 +3,7 @@ const { responseReturn } = require("../../utiles/response");
 const bcrypt = require('bcrypt');
 
 const create_seller = async (req, res) => {
-    const { name, email, password, paymentMethod, accountDetails } = req.body;
+    const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
         return res.status(400).json({ message: 'Name, email, and password are required' });
@@ -22,8 +22,6 @@ const create_seller = async (req, res) => {
             password: hashedPassword,
             role: 'seller',
             status: 'active',
-            paymentMethod,
-            accountDetails
         });
 
         return res.status(201).json({ message: 'Seller created successfully', seller });
@@ -47,9 +45,10 @@ const get_seller = async (req, res) => {
 
 const get_sellers = async (req, res) => {
     try {
-        const { page: pageInput, searchValue, status, perPage: perPageInput } = req.body || {};
-        const page = Math.max(1, Number(pageInput) || 1);
-        const perPage = Math.max(1, Number(perPageInput) || 10);
+        const { page, searchValue, status, parPage } = req.query;
+
+        const pageNumber = parseInt(page) || 1;
+        const perPageNumber = parseInt(parPage) || 5;
 
         const query = { role: "seller" };
 
@@ -60,24 +59,26 @@ const get_sellers = async (req, res) => {
             ];
         }
 
-        if (status) {
+        if (status && status !== '' && status !== 'all') {
             query.status = status;
         }
 
-        const [sellers, total] = await Promise.all([
-            userModel.find(query)
-                .skip((page - 1) * perPage)
-                .limit(perPage)
-                .sort({ createdAt: -1 })
-                .lean(),
-            userModel.countDocuments(query)
-        ]);
+        const totalSeller = await userModel.countDocuments(query);
 
-        const pages = Math.ceil(total / perPage);
-        responseReturn(res, 200, { sellers, total, pages });
+        const sellers = await userModel.find(query)
+            .skip((pageNumber - 1) * perPageNumber)
+            .limit(perPageNumber)
+            .sort({ createdAt: -1 });
+
+        responseReturn(res, 200, { 
+            sellers, 
+            totalSeller,
+            perPage: perPageNumber,
+            page: pageNumber
+        });
     } catch (error) {
         console.error('Get sellers error:', error);
-        responseReturn(res, 500, { error: `Failed to retrieve sellers: ${error.message}` });
+        responseReturn(res, 500, { error: error.message });
     }
 };
 
@@ -102,7 +103,7 @@ const update_seller_status = async (req, res) => {
 const update_seller_info = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, email, password, image, paymentMethod, accountDetails } = req.body;
+        const { name, email, password, image, paymentMethod } = req.body;
         
         const seller = await userModel.findOne({ _id: id, role: "seller" });
         if (!seller) {
@@ -114,7 +115,6 @@ const update_seller_info = async (req, res) => {
         if (password) seller.password = await bcrypt.hash(password, 10);
         if (image) seller.image = image;
         if (paymentMethod) seller.paymentMethod = paymentMethod;
-        if (accountDetails) seller.accountDetails = accountDetails;
 
         await seller.save();
         responseReturn(res, 200, { seller, message: "Update seller info successfully" });
