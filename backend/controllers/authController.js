@@ -4,7 +4,7 @@ const { createAccessToken, createRefreshToken, verifyRefreshToken } = require('.
 const cloudinaryService = require('../utiles/cloudinaryService');
 const { responseReturn } = require('../utiles/response');
 const { sendVerificationEmail } = require('../utiles/emailService');
-const formidable = require('formidable');
+const { formidable } = require('formidable');
 const addressModel = require('../models/addressModel');
 const accountModel = require('../models/accountModel');
 
@@ -90,26 +90,38 @@ const get_user = async (req, res) => {
 
 const profile_image_upload = async (req, res) => {
     const { id } = req;
-    const form = formidable({ multiples: true });
+    const form = formidable({ multiples: false });
 
-    form.parse(req, async (err, _, files) => {
+    try {
+        const [fields, files] = await form.parse(req);
         const { image } = files;
 
-        try {
-            const result = await cloudinaryService.uploader.upload(image.filepath, { folder: 'profile' });
-
-            if (result) {
-                await userModel.findByIdAndUpdate(id, { image: result.url });
-                const userInfo = await userModel.findById(id);
-                return responseReturn(res, 201, { message: 'Profile Image Uploaded Successfully', userInfo });
-            } else {
-                return responseReturn(res, 404, { error: 'Image Upload Failed' });
-            }
-
-        } catch (error) {
-            return responseReturn(res, 500, { error: error.message });
+        if (!image || !image[0]) {
+            return responseReturn(res, 400, { error: 'Image is required' });
         }
-    });
+
+        const result = await cloudinaryService.uploader.upload(image[0].filepath, { folder: 'profile' });
+
+        if (!result) {
+            return responseReturn(res, 404, { error: 'Image Upload Failed' });
+        }
+
+        const userInfo = await userModel.findByIdAndUpdate(
+            id, 
+            { image: result.url },
+            { new: true }
+        );
+
+        return responseReturn(res, 201, { 
+            message: 'Profile Image Uploaded Successfully', 
+            userInfo,
+            image: result.url 
+        });
+
+    } catch (error) {
+        console.error('Profile image upload error:', error);
+        return responseReturn(res, 500, { error: error.message });
+    }
 };
 
 // Customer Register

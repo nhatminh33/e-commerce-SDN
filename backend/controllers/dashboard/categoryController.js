@@ -40,32 +40,38 @@ const add_category = async (req, res) => {
 
 const get_categories = async (req, res) => {
     try {
-        const { page: pageInput, searchValue, perPage: perPageInput } = req.body || {};
+        const { page, searchValue, perPage } = req.query;
 
-        const page = Math.max(1, Number(pageInput) || 1);
-        const perPage = Math.max(1, Number(perPageInput) || 10);
-        const skipPage = (page - 1) * perPage;
+        const pageNumber = parseInt(page) || 1;
+        const itemPerPage = parseInt(perPage) || 10;
+        const skip = (pageNumber - 1) * itemPerPage;
 
-        const query = searchValue
-            ? { name: { $regex: searchValue, $options: 'i' } }
-            : {};
+        let query = {};
+        
+        if (searchValue && searchValue !== 'undefined' && searchValue !== '') {
+            query.name = new RegExp(searchValue, 'i');
+        }
 
         const [categorys, totalCategory] = await Promise.all([
-            categoryModel
-                .find(query)
-                .skip(skipPage)
-                .limit(perPage)
+            categoryModel.find(query)
+                .skip(skip)
+                .limit(itemPerPage)
                 .sort({ createdAt: -1 })
                 .lean(),
             categoryModel.countDocuments(query)
         ]);
 
-        const pages = Math.ceil(totalCategory / perPage);
+        const pages = Math.ceil(totalCategory / itemPerPage);
 
-        responseReturn(res, 200, { categorys, totalCategory, pages });
+        responseReturn(res, 200, {
+            categorys,
+            totalCategory,
+            pages
+        });
+
     } catch (error) {
         console.error('Get categories error:', error);
-        responseReturn(res, 500, { error: `Failed to retrieve categories: ${error.message}` });
+        responseReturn(res, 500, { error: 'Internal server error' });
     }
 };
 

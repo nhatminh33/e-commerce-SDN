@@ -24,7 +24,7 @@ export const seller_login = createAsyncThunk(
     async(info,{rejectWithValue, fulfillWithValue}) => {
          console.log(info)
         try {
-            const {data} = await api.post('/seller-login',info,{withCredentials: true})
+            const {data} = await api.post('/admin-login',info,{withCredentials: true})
             console.log(data)
             localStorage.setItem('accessToken',data.token) 
             return fulfillWithValue(data)
@@ -124,7 +124,7 @@ export const profile_info_add = createAsyncThunk(
         async({navigate,role},{rejectWithValue, fulfillWithValue}) => {
              
             try {
-                const {data} = await api.get('/logout', {withCredentials: true}) 
+                const {data} = await api.post('/logout', {withCredentials: true}) 
                 localStorage.removeItem('accessToken') 
                 if (role === 'admin') {
                     navigate('/admin/login')

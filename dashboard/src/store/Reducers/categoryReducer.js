@@ -3,17 +3,16 @@ import api from "../../api/api";
 
 export const categoryAdd = createAsyncThunk(
     'category/categoryAdd',
-    async({ name,image },{rejectWithValue, fulfillWithValue}) => {
-        
+    async(formData, {rejectWithValue, fulfillWithValue}) => {
         try { 
-            const formData = new FormData()
-            formData.append('name', name)
-            formData.append('image', image)
-            const {data} = await api.post('/category-add',formData,{withCredentials: true}) 
-            // console.log(data)
+            const {data} = await api.post('/add-category', formData, {
+                withCredentials: true,
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            }) 
             return fulfillWithValue(data)
         } catch (error) {
-            // console.log(error.response.data)
             return rejectWithValue(error.response.data)
         }
     }
@@ -23,15 +22,13 @@ export const categoryAdd = createAsyncThunk(
  
 export const get_category = createAsyncThunk(
     'category/get_category',
-    async({ parPage,page,searchValue },{rejectWithValue, fulfillWithValue}) => {
-        
+    async({perPage, page, searchValue}, {rejectWithValue, fulfillWithValue}) => {
         try {
-             
-            const {data} = await api.get(`/category-get?page=${page}&&searchValue=${searchValue}&&parPage=${parPage}`,{withCredentials: true}) 
-            // console.log(data)
+            const {data} = await api.get(`/get-categories?page=${page}&searchValue=${searchValue}&perPage=${perPage}`, {
+                withCredentials: true
+            }) 
             return fulfillWithValue(data)
         } catch (error) {
-            // console.log(error.response.data)
             return rejectWithValue(error.response.data)
         }
     }
@@ -41,19 +38,16 @@ export const get_category = createAsyncThunk(
 
   export const updateCategory = createAsyncThunk(
     'category/updateCategory',
-    async({ id, name,image },{rejectWithValue, fulfillWithValue}) => {
-        
+    async({id, formData}, {rejectWithValue, fulfillWithValue}) => {
         try { 
-            const formData = new FormData()
-            formData.append('name', name)
-            if (image) {
-                formData.append('image', image)
-            } 
-            const {data} = await api.put(`/category-update/${id}`,formData,{withCredentials: true}) 
-            // console.log(data)
+            const {data} = await api.put(`/update-category/${id}`, formData, {
+                withCredentials: true,
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            }) 
             return fulfillWithValue(data)
         } catch (error) {
-            // console.log(error.response.data)
             return rejectWithValue(error.response.data)
         }
     }
@@ -63,14 +57,14 @@ export const get_category = createAsyncThunk(
 
 export const deleteCategory = createAsyncThunk(
     'category/deleteCategory',
-    async(id,{rejectWithValue }) => {
-        
+    async(id, {rejectWithValue, fulfillWithValue}) => {
         try { 
-             
-            const response = await api.delete(`/category/${id}`);  
-            return response.data;
-        } catch (error) {  
-            return rejectWithValue(error.response.data.message)
+            const {data} = await api.delete(`/delete-category/${id}`, {
+                withCredentials: true
+            })
+            return fulfillWithValue({...data, id})
+        } catch (error) {
+            return rejectWithValue(error.response.data)
         }
     }
 )
@@ -79,68 +73,81 @@ export const deleteCategory = createAsyncThunk(
  
 export const categoryReducer = createSlice({
     name: 'category',
-    initialState:{
-        successMessage :  '',
-        errorMessage : '',
+    initialState: {
+        successMessage: '',
+        errorMessage: '',
         loader: false,
-        categorys : [], 
-        totalCategory: 0
+        categorys: [], 
+        totalCategory: 0,
+        pages: 1
     },
-    reducers : {
-
-        messageClear : (state,_) => {
-            state.errorMessage = ""
+    reducers: {
+        messageClear: (state) => {
+            state.successMessage = ''
+            state.errorMessage = ''
         }
-
     },
     extraReducers: (builder) => {
         builder
-        .addCase(categoryAdd.pending, (state, { payload }) => {
-            state.loader = true;
+        .addCase(categoryAdd.pending, (state) => {
+            state.loader = true
         })
         .addCase(categoryAdd.rejected, (state, { payload }) => {
-            state.loader = false;
-            state.errorMessage = payload.error
+            state.loader = false
+            state.errorMessage = payload?.error || 'Something went wrong'
         }) 
         .addCase(categoryAdd.fulfilled, (state, { payload }) => {
-            state.loader = false;
+            state.loader = false
             state.successMessage = payload.message
             state.categorys = [...state.categorys, payload.category]
-             
+            state.totalCategory += 1
         })
 
+        .addCase(get_category.pending, (state) => {
+            state.loader = true
+        })
         .addCase(get_category.fulfilled, (state, { payload }) => {
-            state.totalCategory = payload.totalCategory;
-            state.categorys = payload.categorys;
-             
+            state.loader = false
+            state.totalCategory = payload.totalCategory
+            state.categorys = payload.categorys
+            state.pages = payload.pages
+        })
+        .addCase(get_category.rejected, (state, { payload }) => {
+            state.loader = false
+            state.errorMessage = payload?.error || 'Failed to fetch categories'
         })
 
+        .addCase(updateCategory.pending, (state) => {
+            state.loader = true
+        })
         .addCase(updateCategory.fulfilled, (state, { payload }) => {
-            state.loader = false;
-            state.successMessage = payload.message 
-            const index = state.categorys.findIndex((cat) => cat._id === payload.category._id);
+            state.loader = false
+            state.successMessage = payload.message
+            const index = state.categorys.findIndex(cat => cat._id === payload.category._id)
             if (index !== -1) {
-                state.categorys[index] = payload.category;
+                state.categorys[index] = payload.category
             }
-             
         })
-
         .addCase(updateCategory.rejected, (state, { payload }) => {
-            state.loader = false;
-            state.errorMessage = payload.error; 
+            state.loader = false
+            state.errorMessage = payload?.error || 'Failed to update category'
         })
 
-        .addCase(deleteCategory.fulfilled, (state, action) => {
-            state.categorys = state.categorys.filter(cat => cat._id !== action.meta.arg);
-            state.successMessage = action.payload.message; 
+        .addCase(deleteCategory.pending, (state) => {
+            state.loader = true
         })
-        .addCase(deleteCategory.rejected, (state,action) => { 
-            state.errorMessage = action.payload; 
+        .addCase(deleteCategory.fulfilled, (state, { payload }) => {
+            state.loader = false
+            state.successMessage = payload.message
+            state.categorys = state.categorys.filter(cat => cat._id !== payload.id)
+            state.totalCategory -= 1
         })
- 
-
+        .addCase(deleteCategory.rejected, (state, { payload }) => {
+            state.loader = false
+            state.errorMessage = payload?.error || 'Failed to delete category'
+        })
     }
-
 })
+
 export const {messageClear} = categoryReducer.actions
 export default categoryReducer.reducer

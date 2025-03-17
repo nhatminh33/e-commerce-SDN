@@ -2,6 +2,7 @@ const { formidable } = require('formidable');
 const { responseReturn } = require("../../utiles/response");
 const cloudinaryService = require('../../utiles/cloudinaryService');
 const productModel = require('../../models/productModel');
+const categoryModel = require('../../models/categoryModel');
 
 const add_product = async (req, res) => {
     const { sellerId } = req.params;
@@ -14,10 +15,42 @@ const add_product = async (req, res) => {
 
         let { name, categoryId, description, stock, price, discount } = fields;
         let { images } = files;
-        name = name[0].trim()
+        
+        // Validate fields
+        if (!name || !name[0]) {
+            return responseReturn(res, 400, { error: 'Product name is required' });
+        }
+        
+        if (!categoryId || !categoryId[0]) {
+            return responseReturn(res, 400, { error: 'Category is required' });
+        }
+        
+        if (!stock || isNaN(parseInt(stock))) {
+            return responseReturn(res, 400, { error: 'Invalid stock value' });
+        }
+        
+        if (!price || isNaN(parseInt(price))) {
+            return responseReturn(res, 400, { error: 'Invalid price value' });
+        }
+        
+        if (!description || !description[0]) {
+            return responseReturn(res, 400, { error: 'Product description is required' });
+        }
+
+        if (!images || !Array.isArray(images) && !images.filepath) {
+            return responseReturn(res, 400, { error: 'Product images are required' });
+        }
+
+        name = name[0].trim();
         const slug = name.split(' ').join('-').toLowerCase();
 
         try {
+            // Check if category exists
+            const category = await categoryModel.findById(categoryId[0]);
+            if (!category) {
+                return responseReturn(res, 404, { error: 'Category not found' });
+            }
+
             let allImageUrl = [];
 
             if (!Array.isArray(images)) {
@@ -33,91 +66,104 @@ const add_product = async (req, res) => {
                 sellerId,
                 name,
                 slug,
-                categoryId,
+                categoryId: categoryId[0],
                 description: description[0].trim(),
                 stock: parseInt(stock),
                 price: parseInt(price),
-                discount: parseInt(discount),
+                discount: parseInt(discount) || 0,
                 images: allImageUrl,
-            })
-            responseReturn(res, 201, { message: 'Product added successfully' })
+            });
+            responseReturn(res, 201, { message: 'Product added successfully' });
         } catch (error) {
-            responseReturn(res, 500, { error: error.message })
+            responseReturn(res, 500, { error: error.message });
         }
     });
-}
+};
 
 const get_products = async (req, res) => {
     try {
         const { 
-            page: pageInput, 
-            searchValue, 
-            perPage: perPageInput,
-            categoryId,
-            minPrice,
-            maxPrice,
-            minDiscount,
+            page = 1, 
+            searchValue = '', 
+            perPage = 10, 
+            sellerId = '',
+            categoryId = '',
+            minPrice = '',
+            maxPrice = '',
+            minDiscount = '',
             sortBy = 'createdAt',
             sortOrder = 'desc'
-        } = req.body || {};
+        } = req.query || {};
 
-        const page = Math.max(1, Number(pageInput) || 1);
-        const perPage = Math.max(1, Number(perPageInput) || 10);
-        const skipPage = (page - 1) * perPage;
+        const pageNumber = Math.max(1, Number(page));
+        const itemsPerPage = Math.max(1, Number(perPage));
+        const skipItems = (pageNumber - 1) * itemsPerPage;
 
-        // Xây dựng query filter
+        // Build query filter
         let query = {};
 
-        // Tìm kiếm theo tên
+        // Search by name
         if (searchValue) {
             query.name = { $regex: searchValue, $options: 'i' };
         }
 
-        // Lọc theo danh mục
+        // Filter by seller
+        if (sellerId) {
+            query.sellerId = sellerId;
+        }
+
+        // Filter by category
         if (categoryId) {
             query.categoryId = categoryId;
         }
 
-
-        // Lọc theo khoảng giá
-        if (minPrice !== undefined || maxPrice !== undefined) {
+        // Filter by price range
+        if (minPrice !== undefined && minPrice !== '' || maxPrice !== undefined && maxPrice !== '') {
             query.price = {};
-            if (minPrice !== undefined) {
+            if (minPrice !== undefined && minPrice !== '') {
                 query.price.$gte = Number(minPrice);
             }
-            if (maxPrice !== undefined) {
+            if (maxPrice !== undefined && maxPrice !== '') {
                 query.price.$lte = Number(maxPrice);
             }
         }
 
-        // Lọc theo giảm giá tối thiểu
-        if (minDiscount !== undefined) {
+        // Filter by minimum discount
+        if (minDiscount !== undefined && minDiscount !== '') {
             query.discount = { $gte: Number(minDiscount) };
         }
 
-        // Xác định thứ tự sắp xếp
+        // Determine sort order
         const sort = {};
-        sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+        
+        // Support sorting by multiple fields
+        const sortFields = Array.isArray(sortBy) ? sortBy : [sortBy];
+        const sortDirections = Array.isArray(sortOrder) ? sortOrder : [sortOrder];
+        
+        sortFields.forEach((field, index) => {
+            const direction = sortDirections[index] || sortDirections[0];
+            sort[field] = direction === 'asc' ? 1 : -1;
+        });
 
         const [products, totalProduts] = await Promise.all([
             productModel
                 .find(query)
                 .populate('categoryId')
-                .skip(skipPage)
-                .limit(perPage)
+                .skip(skipItems)
+                .limit(itemsPerPage)
                 .sort(sort)
                 .lean(),
             productModel.countDocuments(query)
         ]);
 
-        const pages = Math.ceil(totalProduts / perPage);
+        const pages = Math.ceil(totalProduts / itemsPerPage);
 
         responseReturn(res, 200, { 
             products, 
             totalProduts, 
             pages,
-            currentPage: page,
-            perPage
+            currentPage: pageNumber,
+            perPage: itemsPerPage
         });
     } catch (error) {
         console.error('Get products error:', error);
@@ -128,33 +174,60 @@ const get_products = async (req, res) => {
 const get_product = async (req, res) => {
     try {
         const { id } = req.params;
-        const product = await productModel.findById(id).populate('categoryId')
-        responseReturn(res, 200, { product })
+        const product = await productModel.findById(id).populate('categoryId');
+        
+        if (!product) {
+            return responseReturn(res, 404, { error: 'Product not found' });
+        }
+        
+        responseReturn(res, 200, { product });
     } catch (error) {
         responseReturn(res, 500, { error: error.message });
     }
-}
+};
 
 const update_product = async (req, res) => {
-    const { id } = req.params;
-    let { name, description, stock, price, discount, brand, sellerId } = req.body;
-    
-    name = name.trim()
-    const slug = name.split(' ').join('-')
-
     try {
-        await productModel.findByIdAndUpdate(id, {
-            name, description, stock, price, discount, brand, slug, sellerId
-        })
-        const product = await productModel.findById(id)
-        responseReturn(res, 200, { product, message: 'Product Updated Successfully' })
+        const { productId, name, description, stock, price, discount, categoryId, sellerId } = req.body;
+        
+        if (!productId) {
+            return responseReturn(res, 400, { error: 'Product ID is required' });
+        }
+
+        // Find the product
+        const product = await productModel.findById(productId);
+        
+        if (!product) {
+            return responseReturn(res, 404, { error: 'Product not found' });
+        }
+        
+        // Check access rights (only product seller can update)
+        if (product.sellerId.toString() !== sellerId) {
+            return responseReturn(res, 403, { error: 'You do not have permission to update this product' });
+        }
+
+        const slug = name.trim().split(' ').join('-').toLowerCase();
+
+        // Update product
+        await productModel.findByIdAndUpdate(productId, {
+            name: name.trim(),
+            description,
+            stock,
+            price,
+            discount: discount || 0,
+            slug,
+            categoryId
+        });
+
+        const updatedProduct = await productModel.findById(productId).populate('categoryId');
+        responseReturn(res, 200, { product: updatedProduct, message: 'Product updated successfully' });
     } catch (error) {
-        responseReturn(res, 500, { error: error.message })
+        responseReturn(res, 500, { error: error.message });
     }
-}
+};
 
 const update_product_image = async (req, res) => {
-    const { id } = req.params;
+    const { productId } = req.params;
     const form = formidable({ multiples: true });
 
     form.parse(req, async (err, fields, files) => {
@@ -162,103 +235,127 @@ const update_product_image = async (req, res) => {
             return responseReturn(res, 400, { error: err.message });
         }
 
-        const productData = await productModel.findById(id)
+        const productData = await productModel.findById(productId);
 
         if (!productData) {
             return responseReturn(res, 404, { error: 'Product not found' });
         }
 
-        let { images } = files;
+        let { oldImage } = fields;
+        let { newImage } = files;
+
+        if (!oldImage || !oldImage[0]) {
+            return responseReturn(res, 400, { error: 'Old image not found' });
+        }
+
+        if (!newImage) {
+            return responseReturn(res, 400, { error: 'New image is required' });
+        }
 
         try {
-            let allImageUrl = [];
-
-            if (!Array.isArray(images)) {
-                images = [images];
+            // Upload new image
+            const result = await cloudinaryService.uploader.upload(newImage.filepath, { folder: 'products' });
+            
+            if (!result) {
+                return responseReturn(res, 500, { error: 'Image upload failed' });
             }
 
-            for (let i = 0; i < images.length; i++) {
-                const result = await cloudinaryService.uploader.upload(images[i].filepath, { folder: 'products' });
-
-                if (!result) {
-                    return responseReturn(res, 500, { error: 'Image upload failed' });
-                }
-
-                allImageUrl.push(result.url);
-            }
-
-            productData.images.map(async image => {
-                const publicId = image.split('/').pop().split('.')[0];
+            // Delete old image from Cloudinary
+            try {
+                const publicId = oldImage[0].split('/').pop().split('.')[0];
                 await cloudinaryService.uploader.destroy(`products/${publicId}`);
-            })
+            } catch (error) {
+                console.error('Error deleting old image:', error);
+                // Continue even if there's an error deleting
+            }
 
-            await productModel.findByIdAndUpdate(id, {
-                images: allImageUrl,
-            })
-            responseReturn(res, 201, { message: 'Product updated successfully' })
+            // Update image array
+            const updatedImages = productData.images.map(img => 
+                img === oldImage[0] ? result.url : img
+            );
+
+            await productModel.findByIdAndUpdate(productId, {
+                images: updatedImages,
+            });
+
+            const updatedProduct = await productModel.findById(productId).populate('categoryId');
+            responseReturn(res, 200, { product: updatedProduct, message: 'Image updated successfully' });
         } catch (error) {
-            responseReturn(res, 500, { product, error: error.message })
+            responseReturn(res, 500, { error: error.message });
         }
     });
-}
+};
 
 const delete_product = async (req, res) => {
     const { id } = req.params;
     try {
-        const product = await productModel.findByIdAndDelete(id);
+        const product = await productModel.findById(id);
+        
         if (!product) {
             return responseReturn(res, 404, { error: 'Product not found' });
         }
-        responseReturn(res, 200, { message: 'Product deleted successfully' });
+
+        // Delete all images from Cloudinary
+        try {
+            for (const image of product.images) {
+                const publicId = image.split('/').pop().split('.')[0];
+                await cloudinaryService.uploader.destroy(`products/${publicId}`);
+            }
+        } catch (error) {
+            console.error('Error deleting images:', error);
+            // Continue even if there's an error deleting images
+        }
+
+        await productModel.findByIdAndDelete(id);
+        responseReturn(res, 200, { message: 'Product deleted successfully', productId: id });
     } catch (error) {
         responseReturn(res, 500, { error: error.message });
     }
-}
+};
 
 const seller_manage_products = async (req, res) => {
     try {
         const sellerId = req.id;
         const { page = 1, perPage = 10, searchValue = '', categoryId = '', sortBy = ['createdAt'], sortOrder = 'desc' } = req.query;
-        console.log("sellerId", req.id);
     
-        // Xây dựng query tìm kiếm
+        // Build search query
         const query = { sellerId };
 
-        // Tìm kiếm theo tên sản phẩm
+        // Search by product name
         if (searchValue) {
             query.name = { $regex: searchValue, $options: 'i' };
         }
 
-        // Lọc theo danh mục
+        // Filter by category
         if (categoryId) {
             query.categoryId = categoryId;
         }
 
-        // Tính toán phân trang
+        // Calculate pagination
         const skip = (parseInt(page) - 1) * parseInt(perPage);
         const limit = parseInt(perPage);
 
-        // Lấy danh sách sản phẩm
+        // Get product list
         let products = await productModel.find(query)
             .populate('categoryId')
             .skip(skip)
             .limit(limit)
             .lean();
 
-        // Đếm tổng số sản phẩm thỏa mãn điều kiện
+        // Count total products matching criteria
         const totalProducts = await productModel.countDocuments(query);
         const totalPages = Math.ceil(totalProducts / limit);
 
-        // Lấy thông tin doanh thu từ mỗi sản phẩm
+        // Get revenue information for each product
         const orderInfo = await Promise.all(products.map(async (product) => {
-            // Tính tổng doanh thu từ các đơn hàng đã hoàn thành
+            // Calculate total revenue from completed orders
             const orders = await require('../../models/orderModel').find({
                 'products.productId': product._id,
                 'delivery_status': 'delivered',
                 'payment_status': 'paid'
             });
 
-            // Tính tổng doanh thu
+            // Calculate total revenue
             let totalRevenue = 0;
             orders.forEach(order => {
                 order.products.forEach(item => {
@@ -274,7 +371,7 @@ const seller_manage_products = async (req, res) => {
             };
         }));
 
-        // Kết hợp thông tin doanh thu vào sản phẩm
+        // Combine revenue information with products
         products = products.map(product => {
             const revenue = orderInfo.find(item => item.productId.toString() === product._id.toString());
             return {
@@ -283,13 +380,13 @@ const seller_manage_products = async (req, res) => {
             };
         });
 
-        // Xử lý sortBy là một mảng
+        // Handle sortBy as an array
         const sortByArray = Array.isArray(sortBy) ? sortBy : [sortBy];
         const sortOrderValue = sortOrder === 'asc' ? 1 : -1;
 
-        // Sắp xếp theo nhiều tiêu chí
+        // Sort by multiple criteria
         products.sort((a, b) => {
-            // Xử lý từng tiêu chí sắp xếp theo thứ tự ưu tiên
+            // Process each sort criterion by priority
             for (const criterion of sortByArray) {
                 let compareResult = 0;
                 
@@ -314,13 +411,13 @@ const seller_manage_products = async (req, res) => {
                         break;
                 }
                 
-                // Nếu có sự khác biệt theo tiêu chí này, trả về kết quả và không xét tiêu chí tiếp theo
+                // If there's a difference by this criterion, return result and don't check next criterion
                 if (compareResult !== 0) {
                     return compareResult;
                 }
             }
             
-            // Nếu tất cả các tiêu chí đều bằng nhau, giữ nguyên vị trí
+            // If all criteria are equal, maintain position
             return 0;
         });
 
