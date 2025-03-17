@@ -17,9 +17,10 @@ const {
 
 const {
     placeOrder ,
-    cancelOrder,
-    confirmOrder,
-    updateOrderStatusDeliveried
+    updateOrderStatus,
+    getOrdersByUserId,
+    getDetailOrder,
+    getOrdersBySeller
 } = require('../controllers/orderController');
 
 customerRouter.get('/products', getAllProduct); //ok
@@ -35,8 +36,9 @@ customerRouter.put('/update-cart-item-quantity', updateCartItemQuantity) //ok
 customerRouter.post('/clear-cart', clearCart) //ok
 
 customerRouter.post('/order', placeOrder), //ok
-customerRouter.put('/cancel-order', cancelOrder), //ok
-customerRouter.put('/confirm-order', confirmOrder), //con thanh toan
-customerRouter.put('/update-order-status-deliveried', updateOrderStatusDeliveried) //ok 
+customerRouter.get('/orders/:userId', getOrdersByUserId); //ok 
+customerRouter.put('/update-order-status', updateOrderStatus); //ok
+customerRouter.get('/order/:orderId', getDetailOrder); //ok
+customerRouter.get('/orders/seller/:sellerId', getOrdersBySeller); //ok de tam o day
 
 module.exports = { customerRouter }

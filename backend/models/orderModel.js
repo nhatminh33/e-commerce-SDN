@@ -17,10 +17,6 @@ const orderSchema = new Schema({
                 type: Number,
                 required: true
             },
-            price: {
-                type: Number,
-                required: true
-            },
             subTotal: {
                 type: Number,
                 required: true
@@ -34,12 +30,15 @@ const orderSchema = new Schema({
     payment_status: {
         type: String,
         required : true ,
-        enum : ["canceled", "paid"] 
+        enum : ["failed", "paid", "pending"] 
+    },
+    payment_method: {
+        type: String
     },
     shippingInfo: {
         fullName: {
             type: String,
-            required: true
+            required: true,
         },
         phoneNumber: {
             type: String,
@@ -57,6 +56,11 @@ const orderSchema = new Schema({
         country: {
             type: String,
             required: true,
+            default: "Viet Nam"
+        },
+        email:{
+            type: String,
+            required: true
         }
     },
     delivery_status: {

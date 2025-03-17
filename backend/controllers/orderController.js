@@ -110,9 +110,9 @@ const placeOrder = async (req, res) => {
     }
 };
 
-const cancelOrder = async (req, res) => {
+const updateOrderStatus = async (req, res) => {
     try {
-        const { orderId } = req.body;
+        const { orderId, status } = req.body;
 
         // Tìm đơn hàng
         const order = await orderModel.findById(orderId);
@@ -120,82 +120,39 @@ const cancelOrder = async (req, res) => {
             return res.status(404).json({ success: false, message: "Order not found" });
         }
 
-        // Kiểm tra trạng thái đơn hàng
-        if (order.delivery_status !== "pending") {
-            return res.status(400).json({ success: false, message: "Only pending orders can be canceled" });
-        }
-
-        // Hoàn lại hàng vào kho
-        for (const item of order.products) {  // Đã sửa ở đây
-            const product = await productModel.findById(item.productId);
-            if (product) {
-                product.stock += item.quantity;
-                await product.save();
+        // Xử lý từng trạng thái cụ thể
+        if (status === "canceled") {
+            if (order.delivery_status !== "pending") {
+                return res.status(400).json({ success: false, message: "Only pending orders can be canceled" });
             }
+            
+            // Hoàn lại hàng vào kho
+            for (const item of order.products) {
+                const product = await productModel.findById(item.productId);
+                if (product) {
+                    product.stock += item.quantity;
+                    await product.save();
+                }
+            }
+            order.payment_status = "canceled";
+        } else if (status === "shipping") {
+            if (order.delivery_status !== "pending") {
+                return res.status(400).json({ success: false, message: "Order cannot be confirmed" });
+            }
+            order.payment_status = "paid";
+        } else if (status === "delivered") {
+            if (order.delivery_status === "delivered" || order.delivery_status === "canceled") {
+                return res.status(400).json({ success: false, message: "Order cannot be delivered" });
+            }
+        } else {
+            return res.status(400).json({ success: false, message: "Invalid status" });
         }
 
-        // Cập nhật trạng thái đơn hàng
-        order.delivery_status = "canceled";
-        order.payment_status = "canceled"
-        await order.save();
-
-        return res.status(200).json({ success: true, message: "Order canceled successfully" });
-
-    } catch (error) {
-        console.error("Error canceling order:", error);
-        return res.status(500).json({ success: false, message: "Internal server error" });
-    }
-};
-
-
-const confirmOrder = async (req, res) => {
-    try {
-        const { orderId } = req.body;
-
-        // Tìm đơn hàng
-        const order = await orderModel.findById(orderId);
-        if (!order) {
-            return res.status(404).json({ success: false, message: "Order not found" });
-        }
-
-        // Kiểm tra trạng thái
-        if (order.delivery_status !== "pending") {
-            return res.status(400).json({ success: false, message: "Order cannot be confirmed" });
-        }
-
-        // Cập nhật trạng thái đơn hàng
-        order.delivery_status = "shipping";
-        order.payment_status = "paid"
-        await order.save();
-
-        return res.status(200).json({ success: true, message: "Order confirmed successfully", order });
-
-    } catch (error) {
-        console.error("Error confirming order:", error);
-        return res.status(500).json({ success: false, message: "Internal server error" });
-    }
-};
-
-const updateOrderStatusDeliveried = async (req, res) => {
-    try {
-        const { orderId } = req.body;
-
-        // Kiểm tra trạng thái hợp lệ
-        const status = "delivered"
-
-        // Tìm đơn hàng
-        const order = await orderModel.findById(orderId);
-        if (!order) {
-            return res.status(404).json({ success: false, message: "Order not found" });
-        }
-        if(order.delivery_status === "delivered" || order.delivery_status === "canceled"){
-            return res.status(400).json({ success: false, message: "Order cannot be delivered" });
-        }
         // Cập nhật trạng thái đơn hàng
         order.delivery_status = status;
         await order.save();
 
-        return res.status(200).json({ success: true, message: "Order have been delivered", order });
+        return res.status(200).json({ success: true, message: `Order status updated to ${status}`, order });
 
     } catch (error) {
         console.error("Error updating order status:", error);
@@ -203,10 +160,107 @@ const updateOrderStatusDeliveried = async (req, res) => {
     }
 };
 
+const getOrdersByUserId = async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const orders = await orderModel.find({ userId });
+        return res.status(200).json({ success: true, message: "Orders retrieved successfully", orders });
+    } catch (error) {
+        console.error("Error retrieving orders:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+const getDetailOrder = async (req, res) => {
+    try {
+        const orderId = req.params.orderId;
+        const order = await orderModel.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ success: false, message: "Order not found" });
+        }
+        return res.status(200).json({ success: true, message: "Order retrieved successfully", order });
+    } catch (error) {
+        console.error("Error retrieving order:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+const getOrdersBySeller = async (req, res) => {
+    try {
+        let sellerId = req.seller?._id || req.params.sellerId || req.query.sellerId;
+
+        if (!sellerId) {
+            return res.status(400).json({ success: false, message: "Seller ID is required" });
+        }
+
+        // Chuyển đổi sellerId thành ObjectId
+        const sellerObjectId = mongoose.Types.ObjectId.isValid(sellerId)
+            ? new mongoose.Types.ObjectId(sellerId)
+            : null;
+
+        if (!sellerObjectId) {
+            return res.status(400).json({ success: false, message: "Invalid Seller ID format" });
+        }
+
+        console.log("[INFO] Converted sellerObjectId:", sellerObjectId);
+
+        // Kiểm tra seller có tồn tại không
+        const sellerExists = await userModel.findById(sellerObjectId).select("_id name");
+        if (!sellerExists) {
+            return res.status(404).json({ success: false, message: "Seller not found" });
+        }
+
+        // Đếm số lượng sản phẩm của seller
+        const productCount = await productModel.countDocuments({ sellerId: sellerObjectId });
+        if (productCount === 0) {
+            return res.status(200).json({ success: true, message: "No products found for this seller", orders: [] });
+        }
+
+        // Lấy danh sách sản phẩm của seller
+        const sellerProducts = await productModel.find({ sellerId: sellerObjectId }).lean();
+        const sellerProductIds = sellerProducts.map((product) => product._id);
+
+        // Tìm tất cả các đơn hàng chứa sản phẩm của seller
+        const orders = await orderModel
+            .find({ "products.productId": { $in: sellerProductIds } })
+            .populate({
+                path: "products.productId",
+                select: "name images price slug sellerId",
+            })
+            .populate({
+                path: "userId",
+                select: "name email phoneNumber",
+            })
+            .sort({ date: -1 })
+            .lean();
+
+        // Lọc các đơn hàng để chỉ giữ lại sản phẩm thuộc seller này
+        const sellerOrders = orders
+            .map((order) => {
+                order.products = order.products.filter(
+                    (product) =>
+                        product.productId?.sellerId?.toString() === sellerObjectId.toString()
+                );
+
+                if (order.products.length === 0) return null;
+
+                // Tính tổng doanh thu của seller trong đơn hàng này
+                order.sellerTotal = order.products.reduce((total, product) => total + product.subTotal, 0);
+                return order;
+            })
+            .filter(Boolean); // Loại bỏ null values
+
+        return res.status(200).json({ success: true, message: "Orders retrieved successfully", sellerOrders });
+    } catch (error) {
+        console.error("[ERROR] Failed to get seller orders:", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
 
 module.exports = { 
     placeOrder ,
-    cancelOrder,
-    confirmOrder,
-    updateOrderStatusDeliveried
+    getOrdersByUserId,
+    updateOrderStatus,
+    getDetailOrder,
+    getOrdersBySeller
 };
