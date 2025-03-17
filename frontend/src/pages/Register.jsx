@@ -18,9 +18,9 @@ const Register = () => {
         name: '',
         email: '',
         password: '',
-        phoneNumber: '',        
+        phoneNumber: '',
         dateOfBirth: '',
-        gender: '',
+        gender: 'male',
         address: {
             receiverName: '',
             phoneNumber: '',
@@ -34,8 +34,6 @@ const Register = () => {
 
     const inputHandle = (e) => {
         const { name, value } = e.target;
-        
-        // Handle address fields separately
         if (['streetAddress', 'province', 'district', 'ward', 'receiverName'].includes(name)) {
             setState({
                 ...state,
@@ -44,24 +42,7 @@ const Register = () => {
                     [name]: value,
                 }
             });
-        } else if(name === 'phoneNumber') {
-            setState({
-                ...state,
-                address: {
-                    ...state.address,
-                    phoneNumber: value
-                }
-            });
-        } else if (name === 'name') {
-            setState({
-                ...state,
-                address: {
-                    ...state.address,
-                    name: value
-                }
-            });
         } else {
-            // Handle other fields normally
             setState({
                 ...state,
                 [name]: value
@@ -71,16 +52,20 @@ const Register = () => {
 
     const register = (e) => {
         e.preventDefault()
-        setState({
+
+        const data = {
             ...state,
             address: {
                 ...state.address,
                 receiverName: state.name,
                 phoneNumber: state.phoneNumber,
             }
-        });
+        }
 
-        dispatch(customer_register(state))
+        console.log('data', data);
+
+
+        dispatch(customer_register(data))
     }
 
     useEffect(() => {
@@ -122,8 +107,8 @@ const Register = () => {
                                             Please check your email inbox to verify your account before logging in.
                                         </p>
                                     </div>
-                                    <Link 
-                                        to="/login" 
+                                    <Link
+                                        to="/login"
                                         className="px-8 w-full py-2 bg-[#059473] shadow-lg hover:shadow-green-500/40 text-white rounded-md block text-center"
                                     >
                                         Go to Login
@@ -164,11 +149,11 @@ const Register = () => {
 
                                         <div className='flex flex-col gap-1 mb-2'>
                                             <label htmlFor="gender">Gender</label>
-                                            <select 
-                                                onChange={inputHandle} 
-                                                value={state.gender} 
-                                                className='w-full px-3 py-2 border border-slate-200 outline-none focus:border-green-500 rounded-md' 
-                                                name="gender" 
+                                            <select
+                                                onChange={inputHandle}
+                                                value={state.gender}
+                                                className='w-full px-3 py-2 border border-slate-200 outline-none focus:border-green-500 rounded-md'
+                                                name="gender"
                                                 id="gender"
                                             >
                                                 <option value="male">Male</option>
@@ -184,57 +169,57 @@ const Register = () => {
 
                                         <div className='flex flex-col gap-1 mb-2'>
                                             <label htmlFor="streetAddress">Street Address</label>
-                                            <input 
-                                                onChange={inputHandle} 
-                                                value={state.address.streetAddress} 
-                                                className='w-full px-3 py-2 border border-slate-200 outline-none focus:border-green-500 rounded-md' 
-                                                type="text" 
-                                                name="streetAddress" 
-                                                id="streetAddress" 
-                                                placeholder='Enter your address' 
-                                                required 
+                                            <input
+                                                onChange={inputHandle}
+                                                value={state.address.streetAddress}
+                                                className='w-full px-3 py-2 border border-slate-200 outline-none focus:border-green-500 rounded-md'
+                                                type="text"
+                                                name="streetAddress"
+                                                id="streetAddress"
+                                                placeholder='Enter your address'
+                                                required
                                             />
                                         </div>
 
                                         <div className='flex flex-col gap-1 mb-2'>
                                             <label htmlFor="province">Province</label>
-                                            <input 
-                                                onChange={inputHandle} 
-                                                value={state.address.province} 
-                                                className='w-full px-3 py-2 border border-slate-200 outline-none focus:border-green-500 rounded-md' 
-                                                type="text" 
-                                                name="province" 
-                                                id="province" 
-                                                placeholder='Enter your province' 
-                                                required 
+                                            <input
+                                                onChange={inputHandle}
+                                                value={state.address.province}
+                                                className='w-full px-3 py-2 border border-slate-200 outline-none focus:border-green-500 rounded-md'
+                                                type="text"
+                                                name="province"
+                                                id="province"
+                                                placeholder='Enter your province'
+                                                required
                                             />
                                         </div>
 
                                         <div className='flex flex-col gap-1 mb-2'>
                                             <label htmlFor="district">District</label>
-                                            <input 
-                                                onChange={inputHandle} 
-                                                value={state.address.district} 
-                                                className='w-full px-3 py-2 border border-slate-200 outline-none focus:border-green-500 rounded-md' 
-                                                type="text" 
-                                                name="district" 
-                                                id="district" 
-                                                placeholder='Enter your district' 
-                                                required 
+                                            <input
+                                                onChange={inputHandle}
+                                                value={state.address.district}
+                                                className='w-full px-3 py-2 border border-slate-200 outline-none focus:border-green-500 rounded-md'
+                                                type="text"
+                                                name="district"
+                                                id="district"
+                                                placeholder='Enter your district'
+                                                required
                                             />
                                         </div>
 
                                         <div className='flex flex-col gap-1 mb-2'>
                                             <label htmlFor="ward">Ward</label>
-                                            <input 
-                                                onChange={inputHandle} 
-                                                value={state.address.ward} 
-                                                className='w-full px-3 py-2 border border-slate-200 outline-none focus:border-green-500 rounded-md' 
-                                                type="text" 
-                                                name="ward" 
-                                                id="ward" 
-                                                placeholder='Enter your ward' 
-                                                required 
+                                            <input
+                                                onChange={inputHandle}
+                                                value={state.address.ward}
+                                                className='w-full px-3 py-2 border border-slate-200 outline-none focus:border-green-500 rounded-md'
+                                                type="text"
+                                                name="ward"
+                                                id="ward"
+                                                placeholder='Enter your ward'
+                                                required
                                             />
                                         </div>
 

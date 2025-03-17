@@ -23,6 +23,23 @@ const admin_login = async (req, res) => {
         }
         
         const token = await createAccessToken({ id: user._id.toString(), role: user.role });
+        const refreshToken = await createRefreshToken({ id: user._id.toString(), role: user.role });
+
+        // Lưu refresh token vào model Account
+        let account = await accountModel.findByUserId(user._id);
+
+        if (account) {
+            // Cập nhật token mới nếu tài khoản đã tồn tại
+            await account.updateRefreshToken(refreshToken, 30 * 24 * 60 * 60 * 1000); // 30 ngày
+        } else {
+            // Tạo mới account nếu chưa tồn tại
+            account = new accountModel({
+                userId: user._id,
+                refreshToken: refreshToken,
+                expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 ngày
+            });
+            await account.save();
+        }
 
         res.cookie('accessToken', token, {
             expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
@@ -57,7 +74,8 @@ const logout = async (req, res) => {
 
 const get_user = async (req, res) => {
     try {
-        const { id } = req.body;
+        // Lấy id trực tiếp từ req.id (được set bởi middleware authenticateToken)
+        const id = req.id;
 
         const user = await userModel.findById(id);
         if (!user) {
