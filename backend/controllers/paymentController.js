@@ -144,7 +144,10 @@ module.exports.returnVnpay = async (req, res) => {
         if (!order) {
             return res.json({ success: false, message: "Order not found" });
         }
-        let productList = order.products.map(p => `${p.productId.name} (x${p.quantity})`).join(', ');
+
+        let orderProduct = await orderModel.findById(orderId).populate('products.productId');
+
+        let productList = orderProduct.products.map(p => `${p.productId?.name || 'Unknown'} (x${p.quantity})`).join(', ');
 
         if (vnp_Params['vnp_ResponseCode'] === '00') {
             await orderModel.updateOne({ _id: orderId }, { 
@@ -160,6 +163,7 @@ module.exports.returnVnpay = async (req, res) => {
                        <p><strong>Tổng tiền:</strong> ${order.totalPrice} VND</p>
                        <p><strong>Ngày thanh toán:</strong> ${order.date}</p>
                        <p><strong>Địa chỉ giao hàng:</strong> ${order.shippingInfo.address}, ${order.shippingInfo.city}, ${order.shippingInfo.country}</p>
+                       <p style="font-weight: bold; color: orange">Đơn hàng sẽ được giao tới tay quý khách sau 3 - 4 ngày</p>
                     `
             })
             return res.json({ success: true, message: "Thanh toán thành công" });
