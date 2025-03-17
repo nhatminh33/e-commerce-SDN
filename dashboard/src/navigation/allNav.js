@@ -90,13 +90,13 @@ export const allNav = [
         role : 'seller',
         path: '/seller/dashboard/products'
     },
-    {
-        id : 12,
-        title : 'Discount Product',
-        icon : <TbBasketDiscount />,
-        role : 'seller',
-        path: '/seller/dashboard/discount-product'
-    },
+    // {
+    //     id : 12,
+    //     title : 'Discount Product',
+    //     icon : <TbBasketDiscount />,
+    //     role : 'seller',
+    //     path: '/seller/dashboard/discount-product'
+    // },
     {
         id : 13,
         title : 'Orders',

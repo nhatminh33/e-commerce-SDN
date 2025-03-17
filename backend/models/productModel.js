@@ -66,8 +66,8 @@ const productSchema = new Schema({
 }, { timestamps: true });
 
 productSchema.index(
-    { name: "text", brand: "text", description: "text" },
-    { weights: { name: 7, brand: 4, description: 2 } }
+    { name: "text", description: "text" },
+    { weights: { name: 7, description: 2 } }
 );
 
 productSchema.index({ slug: 1 }, { unique: true }); 
