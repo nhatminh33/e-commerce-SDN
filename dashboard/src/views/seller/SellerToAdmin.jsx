@@ -3,13 +3,14 @@ import { useDispatch, useSelector } from 'react-redux';
 import { get_admin_message, get_seller_message, get_sellers, send_message_seller_admin, updateAdminMessage,messageClear } from '../../store/Reducers/chatReducer'
 
 import {socket} from '../../utils/utils'
+import { toast } from 'react-hot-toast';
 
 
 const SellerToAdmin = () => {
     const scrollRef = useRef()
     const dispatch = useDispatch()
     const [text,setText] = useState('')
-    const {sellers,activeSeller,seller_admin_message,currentSeller,successMessage} = useSelector(state => state.chat)
+    const {sellers,activeSeller,seller_admin_message,currentSeller,successMessage,adminInfo} = useSelector(state => state.chat)
 
     const {userInfo} = useSelector(state => state.auth)
 
@@ -17,30 +18,91 @@ const SellerToAdmin = () => {
         dispatch(get_seller_message())
     },[])
 
+    useEffect(() => {
+        // Đảm bảo userInfo đã tồn tại
+        if(!userInfo || !userInfo._id) {
+            return;
+        }
+        
+        // Đảm bảo socket đã kết nối trước khi đăng ký
+        if (socket.connected) {
+            socket.emit('add_seller', userInfo._id, {
+                name: userInfo.name,
+                email: userInfo.email,
+                image: userInfo.image
+            });
+        } else {
+            // Đăng ký khi socket kết nối
+            socket.on('connect', () => {
+                socket.emit('add_seller', userInfo._id, {
+                    name: userInfo.name,
+                    email: userInfo.email,
+                    image: userInfo.image
+                });
+            });
+        }
+        
+        socket.on('disconnect', () => {
+            console.log('Seller disconnected from socket server');
+        });
+        
+        socket.on('error', (error) => {
+            console.error('Socket connection error:', error);
+        });
+        
+        return () => {
+            // Hủy đăng ký các sự kiện khi component unmount
+            socket.off('connect');
+            socket.off('disconnect');
+            socket.off('error');
+        }
+    }, [userInfo]);
+
     const send = (e) => {
         e.preventDefault() 
-            dispatch(send_message_seller_admin({
-                senderId: userInfo._id, 
-                receverId: '',
-                message: text,
-                senderName: userInfo.name
-            }))
-            setText('') 
+        if (!text.trim()) return;
+        
+        // Đảm bảo rằng thông tin người dùng đã được tải
+        if (!userInfo || !userInfo._id) {
+            toast.error('Chưa có thông tin người dùng');
+            return;
+        }
+        
+        const messageData = {
+            senderId: userInfo._id, 
+            receverId: '',
+            message: text,
+            senderName: userInfo.name
+        };
+        
+        // Gửi tin nhắn đến server qua API
+        dispatch(send_message_seller_admin(messageData));
+        setText('');
     }
 
     useEffect(() => {
         socket.on('receved_admin_message', msg => {
              dispatch(updateAdminMessage(msg))
         })
+        
+        return () => {
+            socket.off('receved_admin_message')
+        }
          
     },[])
 
     useEffect(() => {
         if (successMessage) {
-            socket.emit('send_message_seller_to_admin',seller_admin_message[seller_admin_message.length - 1])
-            dispatch(messageClear())
+            // Lấy tin nhắn cuối cùng được thêm vào
+            const lastMessage = seller_admin_message[seller_admin_message.length - 1];
+            
+            // Gửi tin nhắn qua socket
+            socket.emit('send_message_seller_to_admin', lastMessage);
+            
+            // Xóa thông báo thành công
+            dispatch(messageClear());
         }
-    },[successMessage])
+    },[successMessage, seller_admin_message])
 
     useEffect(() => {
         scrollRef.current?.scrollIntoView({ behavior: 'smooth'})
@@ -57,10 +119,10 @@ const SellerToAdmin = () => {
         <div className='flex justify-between items-center'>
             <div className='flex justify-start items-center gap-3'>
            <div className='relative'>
-         <img className='w-[45px] h-[45px] border-green-500 border-2 max-w-[45px] p-[2px] rounded-full' src="http://localhost:3001/images/demo.jpg" alt="" />
+         <img className='w-[45px] h-[45px] border-green-500 border-2 max-w-[45px] p-[2px] rounded-full' src={adminInfo?.image || "http://localhost:3001/images/admin.jpg"} alt="" />
          <div className='w-[10px] h-[10px] bg-green-500 rounded-full absolute right-0 bottom-0'></div>
         </div>
-        <h2 className='text-base text-white font-semibold'>Support</h2>
+        <h2 className='text-base text-white font-semibold'>{adminInfo?.name || "Admin Support"}</h2>
 
                 </div> 
              
@@ -76,7 +138,7 @@ const SellerToAdmin = () => {
 <div ref={scrollRef} key={i} className='w-full flex justify-start items-center'>
         <div className='flex justify-start items-start gap-2 md:px-3 py-2 max-w-full lg:max-w-[85%]'>
             <div>
-                <img className='w-[38px] h-[38px] border-2 border-white rounded-full max-w-[38px] p-[3px]' src="http://localhost:3001/images/demo.jpg" alt="" />
+                <img className='w-[38px] h-[38px] border-2 border-white rounded-full max-w-[38px] p-[3px]' src={userInfo.image || "http://localhost:3001/images/demo.jpg"} alt="" />
             </div>
             <div className='flex justify-center items-start flex-col w-full bg-blue-500 shadow-lg shadow-blue-500/50 text-white py-1 px-2 rounded-sm'>
             <span>{m.message} </span>
@@ -94,7 +156,7 @@ const SellerToAdmin = () => {
                         <span>{m.message}  </span>
                         </div> 
                         <div>
-                            <img className='w-[38px] h-[38px] border-2 border-white rounded-full max-w-[38px] p-[3px]' src="http://localhost:3001/images/admin.jpg" alt="" />
+                            <img className='w-[38px] h-[38px] border-2 border-white rounded-full max-w-[38px] p-[3px]' src={adminInfo?.image || "http://localhost:3001/images/admin.jpg"} alt="" />
                         </div>
 
                     </div> 

@@ -127,6 +127,7 @@ export const chatReducer = createSlice({
         currentSeller: {},
         currentCustomer: {},
         sellers: [],
+        adminInfo: {}
     },
     reducers : {
 
@@ -189,6 +190,7 @@ export const chatReducer = createSlice({
         })
         .addCase(get_seller_message.fulfilled, (state, { payload }) => { 
             state.seller_admin_message = payload.messages 
+            state.adminInfo = payload.adminInfo
         })
  
     }
