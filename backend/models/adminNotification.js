@@ -7,19 +7,23 @@ const notificationSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    receiver: {
+    receiver: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: "User", 
       required: true,
-    },
+    }],
     message: {
       type: String,
       required: true,
     },
-    read: {
-      type: Boolean,
-      default: false,
-    },
+    viewers: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }],
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
   },
   { timestamps: true }
 );
