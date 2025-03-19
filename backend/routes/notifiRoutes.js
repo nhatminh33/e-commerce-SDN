@@ -7,8 +7,11 @@ const sellerMiddleware = require("../middlewares/sellerMiddleware")
 const authenticateToken = require("../middlewares/authenticateToken")
 
 router.post("/notify/create", systemMiddleware, notificationController.createNotification);
-router.get("/notify/:sellerId", sellerMiddleware, notificationController.getNotifications); 
-router.put("/notify/:id", authenticateToken, notificationController.markAsRead);            
-router.delete("/notify/:id", adminMiddleware, notificationController.deleteNotification);
+router.get("/notify", authenticateToken, notificationController.getNotifications);
+router.get("/notify/all", adminMiddleware, notificationController.getAllNotifications); 
+router.get("/notify/sellers", authenticateToken, notificationController.getAllSellers);
+router.put("/notify/view/:id", authenticateToken, notificationController.markAsRead);            
+router.delete("/notify/delete/:id", authenticateToken, notificationController.deleteNotification);
+router.put("/notify/update/:id", adminMiddleware, notificationController.updateNotification);
 
 module.exports = router;

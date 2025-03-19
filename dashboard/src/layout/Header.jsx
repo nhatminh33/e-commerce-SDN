@@ -1,6 +1,7 @@
 import React from 'react';
 import { FaList } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
+import NotificationIcon from '../views/components/NotificationIcon';
 
 const Header = ({ showSidebar, setShowSidebar }) => {
 
@@ -16,6 +17,11 @@ const Header = ({ showSidebar, setShowSidebar }) => {
 
         <div className='flex w-full justify-end items-center'>
             <div className='flex justify-center items-center gap-3'>
+              {(userInfo.role === 'seller') && (
+                <div className="mr-4">
+                  <NotificationIcon />
+                </div>
+              )}
               <div className='flex justify-center items-center flex-col text-end'>
                 <h2 className='text-md font-bold'>{userInfo.name}</h2>
                 <span className='text-[14px] w-full font-normal'>{userInfo.role}</span>

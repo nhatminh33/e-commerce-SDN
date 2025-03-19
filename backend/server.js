@@ -7,15 +7,16 @@ const morgan = require('morgan')
 const { dbConnect } = require('./utiles/db')
 const { rootRouter } = require('./routes/rootRouter')
 const server = http.createServer(app)
+const { Server } = require('socket.io')
+const notificationSocket = require('./socket/notificationSocket')
+
 app.use(cors({
     origin : ['http://localhost:3000','http://localhost:3001'],
     credentials: true
 }))
 
 require('dotenv').config()
-app.use(morgan('dev', {
-    skip: (req) => req.originalUrl.startsWith('/socket.io')
-  }));
+app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -33,6 +34,26 @@ app.use("/api", require("./routes/chatRoutes"));
 app.use('/api', require('./routes/bannerRoutes'))
 app.use("/api", require("./routes/commentRoutes"));
 app.use('/api', require('./routes/notifiRoutes'))
+
+// Cấu hình socket.io
+const io = new Server(server, {
+    cors: {
+        origin: ['http://localhost:3000', 'http://localhost:3001'],
+        credentials: true
+    }
+})
+
+io.on('connection', (socket) => {
+    console.log('Người dùng kết nối socket: ' + socket.id);
+    
+    // Xử lý thông báo
+    notificationSocket(socket, io);
+    
+    // Xử lý ngắt kết nối
+    socket.on('disconnect', () => {
+        console.log('Người dùng ngắt kết nối: ' + socket.id);
+    });
+})
  
 const port = process.env.PORT
 dbConnect()

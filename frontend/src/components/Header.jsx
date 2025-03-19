@@ -13,6 +13,7 @@ import { FaPhoneAlt } from "react-icons/fa";
 import { IoIosArrowDown } from "react-icons/io"; 
 import { useDispatch, useSelector } from 'react-redux';
 import { get_card_products, get_wishlist_products } from '../store/reducers/cardReducer';
+import NotificationIcon from './NotificationIcon';
 
 const Header = () => {
     
@@ -48,7 +49,7 @@ const Header = () => {
             dispatch(get_card_products(userInfo.id))
             dispatch(get_wishlist_products(userInfo.id))
         }  
-    },[userInfo])
+    },[userInfo,dispatch])
 
     return (
         <div className='w-full bg-white'>
@@ -153,18 +154,21 @@ const Header = () => {
                      
                  </div>
 
-                        <div onClick={redirect_card_page} className='relative flex justify-center items-center cursor-pointer w-[35px] h-[35px] rounded-full bg-[#e2e2e2]'>
-                            <span className='text-xl text-green-500'><FaCartShopping  /></span>
-            
-                {
-                    card_product_count !== 0 && <div className='w-[20px] h-[20px] absolute bg-red-500 rounded-full text-white flex justify-center items-center -top-[3px] -right-[5px] '>
-                        {
-                            card_product_count
-                        }
-                     </div> 
-                } 
-                               
-                        </div> 
+                        <div onClick={redirect_card_page} className="flex cursor-pointer justify-center items-center h-[40px] w-[40px] rounded-full bg-[#f5f5f5]">
+                            <span className="text-xl text-red-500 cursor-pointer relative">
+                                <FaCartShopping />
+                                <span className="w-[20px] h-[20px] absolute -top-[3px] -right-[8px] rounded-full bg-green-500 text-white flex justify-center items-center text-[14px]">
+                                    {
+                                        card_product_count
+                                    }
+                                </span>
+                            </span>
+                        </div>
+                        {userInfo && (
+                            <div className="flex justify-center items-center h-[40px] w-[40px] rounded-full bg-[#f5f5f5] ml-3">
+                                <NotificationIcon />
+                            </div>
+                        )}
                     </div> 
                 </div> 
 

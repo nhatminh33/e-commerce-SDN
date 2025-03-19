@@ -7,6 +7,7 @@ import chatReducer from "./Reducers/chatReducer";
 import dashboardReducer from "./Reducers/dashboardReducer";
 import productReducer from "./Reducers/productReducer";
 import sellerReducer from "./Reducers/sellerReducer";
+import notificationReducer from "./Reducers/notificationReducer";
 
 const rootReducer = {
     auth: authReducer,
@@ -17,6 +18,7 @@ const rootReducer = {
     order: OrderReducer,
     payment: PaymentReducer,
     dashboard: dashboardReducer,
-    banner: bannerReducer
+    banner: bannerReducer,
+    notification: notificationReducer
 }
 export default rootReducer;

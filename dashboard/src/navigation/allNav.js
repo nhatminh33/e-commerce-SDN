@@ -11,6 +11,7 @@ import { BsCartCheck } from "react-icons/bs";
 import { IoChatbubbles } from "react-icons/io5";
 import { BsFillChatQuoteFill } from "react-icons/bs";
 import { CgProfile } from "react-icons/cg";
+import { IoMdNotificationsOutline } from "react-icons/io";
 
 export const allNav = [
     {
@@ -48,13 +49,13 @@ export const allNav = [
         role : 'admin',
         path: '/admin/dashboard/payment-request'
     },
-    {
-        id : 6,
-        title : 'Deactive Sellers',
-        icon : <FaUserTimes />,
-        role : 'admin',
-        path: '/admin/dashboard/deactive-sellers'
-    },
+    // {
+    //     id : 6,
+    //     title : 'Deactive Sellers',
+    //     icon : <FaUserTimes />,
+    //     role : 'admin',
+    //     path: '/admin/dashboard/deactive-sellers'
+    // },
     {
         id : 7,
         title : 'Seller Request',
@@ -71,68 +72,79 @@ export const allNav = [
     },
     {
         id : 9,
+        title : 'Notifications',
+        icon : <IoMdNotificationsOutline />,
+        role : 'admin',
+        path: '/admin/dashboard/notifications'
+    },
+    {
+        id : 10,
         title : 'Dashboard',
         icon : <AiOutlineDashboard />,
         role : 'seller',
         path: '/seller/dashboard'
     },
     {
-        id : 10,
+        id : 11,
         title : 'Add Product',
         icon : <IoMdAdd />,
         role : 'seller',
         path: '/seller/dashboard/add-product'
     },     
     {
-        id : 11,
+        id : 12,
         title : 'All Product',
         icon : <MdViewList />,
         role : 'seller',
         path: '/seller/dashboard/products'
     },
     // {
-    //     id : 12,
+    //     id : 13,
     //     title : 'Discount Product',
     //     icon : <TbBasketDiscount />,
     //     role : 'seller',
     //     path: '/seller/dashboard/discount-product'
     // },
     {
-        id : 13,
+        id : 14,
         title : 'Orders',
         icon : <BsCartCheck />,
         role : 'seller',
         path: '/seller/dashboard/orders'
     },
     {
-        id : 14,
+        id : 15,
         title : 'Payments',
         icon : <MdPayment />,
         role : 'seller',
         path: '/seller/dashboard/payments'
     },
     {
-        id : 15,
+        id : 16,
         title : 'Chat-Customer',
         icon : <IoChatbubbles />,
         role : 'seller',
         path: '/seller/dashboard/chat-customer'
     },
     {
-        id : 16,
+        id : 17,
         title : 'Chat-Support',
         icon : <BsFillChatQuoteFill />,
         role : 'seller',
         path: '/seller/dashboard/chat-support'
     },
     {
-        id : 17,
+        id : 18,
         title : 'Profile',
         icon : <CgProfile />,
         role : 'seller',
         path: '/seller/dashboard/profile'
+    },
+    {
+        id : 19,
+        title : 'Notifications',
+        icon : <IoMdNotificationsOutline />,
+        role : 'seller',
+        path: '/seller/dashboard/notifications'
     }
-
-
-
 ]
