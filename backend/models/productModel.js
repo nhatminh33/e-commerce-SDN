@@ -57,6 +57,12 @@ const productSchema = new Schema({
             message: "At least one product image is required!"
         }
     },
+    comments: [
+        {
+            type: Schema.Types.ObjectId,
+            ref: "Comment"
+        }
+    ],
     rating: {
         type: Number,
         default: 0,

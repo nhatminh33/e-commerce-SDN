@@ -92,8 +92,9 @@ const get_products = async (req, res) => {
             maxPrice = '',
             minDiscount = '',
             sortBy = 'createdAt',
-            sortOrder = 'desc'
-        } = req.query || {};
+            sortOrder = 'desc',
+            rating = 0
+        } = req.body || {};
 
         const pageNumber = Math.max(1, Number(page));
         const itemsPerPage = Math.max(1, Number(perPage));
@@ -101,6 +102,10 @@ const get_products = async (req, res) => {
 
         // Build query filter
         let query = {};
+        
+        if(rating > 0){
+            query.rating = { $gte: rating }
+        }
 
         // Search by name
         if (searchValue) {
