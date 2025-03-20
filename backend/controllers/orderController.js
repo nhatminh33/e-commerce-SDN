@@ -9,33 +9,34 @@ const placeOrder = async (req, res) => {
     try {
         const { userId, shippingInfo, selectedItems } = req.body;
 
+        // Validate input
         if (!userId || !shippingInfo || !selectedItems || !Array.isArray(selectedItems) || selectedItems.length === 0) {
             return res.status(400).json({ success: false, message: "Invalid input data" });
         }
 
+        // Get cart items with product details
         const cartItems = await cartModel.find({
             userId,
             _id: { $in: selectedItems }
-        }).populate("productId", "name price stock discount");
+        }).populate("productId", "name price stock discount sellerId");
 
         if (!cartItems.length) {
             return res.status(400).json({ success: false, message: "Selected items not found in cart" });
         }
 
-        let totalPrice = 0;
-        let orderProducts = [];
+        // Group items by seller
+        const ordersBySeller = {};
 
         for (const cartItem of cartItems) {
             const product = cartItem.productId;
-
+            
+            // Validate product data
             if (!product || typeof product.price !== "number" || isNaN(product.price)) {
                 return res.status(400).json({ success: false, message: "Invalid product price in cart" });
             }
-
             if (!cartItem.quantity || isNaN(cartItem.quantity) || cartItem.quantity <= 0) {
                 return res.status(400).json({ success: false, message: "Invalid quantity for product" });
             }
-
             if (cartItem.quantity > product.stock) {
                 return res.status(400).json({
                     success: false,
@@ -43,17 +44,21 @@ const placeOrder = async (req, res) => {
                 });
             }
 
+            // Calculate prices
             const discount = product.discount && typeof product.discount === "number" ? product.discount : 0;
             const discountedPrice = product.price - (product.price * discount) / 100;
             const subTotal = discountedPrice * cartItem.quantity;
 
-            if (isNaN(discountedPrice) || isNaN(subTotal)) {
-                return res.status(400).json({ success: false, message: "Invalid price calculation" });
+            // Group by seller ID
+            if (!ordersBySeller[product.sellerId]) {
+                ordersBySeller[product.sellerId] = {
+                    products: [],
+                    totalPrice: 0
+                };
             }
 
-            totalPrice += subTotal;
-
-            orderProducts.push({
+            // Add product to seller's order
+            ordersBySeller[product.sellerId].products.push({
                 productId: product._id,
                 name: product.name,
                 quantity: cartItem.quantity,
@@ -61,54 +66,64 @@ const placeOrder = async (req, res) => {
                 subTotal: subTotal
             });
 
+            // Update total price for this seller
+            ordersBySeller[product.sellerId].totalPrice += subTotal;
+
+            // Update product stock
             await productModel.findByIdAndUpdate(product._id, {
                 $inc: { stock: -cartItem.quantity }
             });
         }
 
-        if (isNaN(totalPrice) || totalPrice <= 0) {
-            return res.status(400).json({ success: false, message: "Total price calculation error" });
+        // Create separate orders for each seller
+        const createdOrders = [];
+
+        for (const sellerId in ordersBySeller) {
+            const newOrder = new orderModel({
+                userId,
+                products: ordersBySeller[sellerId].products,
+                totalPrice: ordersBySeller[sellerId].totalPrice,
+                payment_status: "pending",
+                shippingInfo,
+                delivery_status: "pending",
+                date: new Date(),
+                sellerId
+            });
+            await newOrder.save();
+            createdOrders.push(newOrder);
         }
 
-        const newOrder = new orderModel({
-            userId,
-            products: orderProducts,
-            totalPrice,
-            payment_status: "pending",
-            shippingInfo,
-            delivery_status: "pending",
-            date: new Date(),
-        });
-
-        await newOrder.save();
+        // Remove ordered items from cart
         await cartModel.deleteMany({ _id: { $in: selectedItems } });
-
-        // Get user info
+        
+        // Get user information
         const user = await userModel.findById(userId).select("name email");
 
+        // Return success response
         return res.status(201).json({
             success: true,
-            message: "Order placed successfully",
-            order: {
-                _id: newOrder._id,
+            message: "Orders placed successfully",
+            orders: createdOrders.map(order => ({
+                _id: order._id,
+                sellerId: order.sellerId,
                 user: {
                     name: user.name,
                     email: user.email
                 },
-                products: orderProducts,
-                totalPrice: newOrder.totalPrice,
-                payment_status: newOrder.payment_status,
-                shippingInfo: newOrder.shippingInfo,
-                delivery_status: newOrder.delivery_status,
-                date: newOrder.date,
-            }
+                products: order.products,
+                totalPrice: order.totalPrice,
+                payment_status: order.payment_status,
+                shippingInfo: order.shippingInfo,
+                delivery_status: order.delivery_status,
+                date: order.date,
+            }))
         });
-
     } catch (error) {
         console.error("Error placing order:", error);
         return res.status(500).json({ success: false, message: "Internal server error" });
     }
 };
+
 
 const updateOrderStatus = async (req, res) => {
     try {
