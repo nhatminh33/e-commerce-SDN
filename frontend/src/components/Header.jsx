@@ -13,7 +13,6 @@ import { FaPhoneAlt } from "react-icons/fa";
 import { IoIosArrowDown } from "react-icons/io"; 
 import { useDispatch, useSelector } from 'react-redux';
 import { get_card_products, get_wishlist_products } from '../store/reducers/cardReducer';
-import NotificationIcon from './NotificationIcon';
 
 const Header = () => {
     
@@ -164,11 +163,6 @@ const Header = () => {
                                 </span>
                             </span>
                         </div>
-                        {userInfo && (
-                            <div className="flex justify-center items-center h-[40px] w-[40px] rounded-full bg-[#f5f5f5] ml-3">
-                                <NotificationIcon />
-                            </div>
-                        )}
                     </div> 
                 </div> 
 
