@@ -438,6 +438,54 @@ const refresh_token = async (req, res) => {
     }
 };
 
+const change_password = async (req, res) => {
+    const { id } = req;
+    const { oldPassword, newPassword } = req.body;
+
+    try {
+        const user = await userModel.findById(id).select('+password');
+        if (!user) {
+            return responseReturn(res, 404, { error: "User not found" });
+        }
+
+        const match = await bcrypt.compare(oldPassword, user.password);
+        if (!match) {
+            return responseReturn(res, 404, { error: "Old password is incorrect" });
+        }
+
+        user.password = await bcrypt.hash(newPassword, 10);
+        await user.save();
+
+        return responseReturn(res, 200, { 
+            message: "Password updated successfully. Please login again with your new password." 
+        });
+
+    } catch (error) {
+        return responseReturn(res, 500, { error: error.message });
+    }
+};
+
+const reset_password = async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const user = await userModel.findOne({ email });
+        if (!user) {
+            return responseReturn(res, 404, { error: "User not found" });
+        }
+
+        const newPassword = user.generatePassword();
+        user.password = await bcrypt.hash(newPassword, 10);
+        await user.save();
+
+        return responseReturn(res, 200, { message: "Password reset successfully", newPassword });
+
+    } catch (error) {
+        return responseReturn(res, 500, { error: error.message });
+    }
+}
+
+
 module.exports = { 
     admin_login, 
     customer_login,
@@ -448,5 +496,7 @@ module.exports = {
     refresh_token,
     logout, 
     get_user, 
-    profile_image_upload 
+    profile_image_upload,
+    change_password,
+    reset_password
 };
