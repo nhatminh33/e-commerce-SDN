@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { FaList } from 'react-icons/fa6';
 import { IoMdClose } from "react-icons/io";
 import { useDispatch, useSelector } from 'react-redux';
-import { get_admin_message, get_sellers, send_message_seller_admin ,messageClear, updateSellerMessage} from '../../store/Reducers/chatReducer'
+import { get_admin_message, get_sellers, send_message_seller_admin ,messageClear, updateSellerMessage, updateSellers} from '../../store/Reducers/chatReducer'
 import { Link, useParams } from 'react-router-dom';
 import { FaRegFaceGrinHearts } from "react-icons/fa6";
 import toast from 'react-hot-toast';
@@ -15,23 +15,63 @@ const ChatSeller = () => {
     const { sellerId } = useParams()
     const [text,setText] = useState('')
     const [receverMessage,setReceverMessage] = useState('')
-
+    const {userInfo} = useSelector(state => state.auth)
     const {sellers,activeSeller,seller_admin_message,currentSeller,successMessage} = useSelector(state => state.chat)
     const dispatch = useDispatch()
 
+    // Đăng ký admin khi trang được tải
+    useEffect(() => {
+        // Đảm bảo socket đã kết nối trước khi đăng ký
+        if (socket.connected) {
+            socket.emit('add_admin', userInfo?._id || 'admin_id');
+        } else {
+            // Đăng ký khi socket kết nối
+            socket.on('connect', () => {
+                socket.emit('add_admin', userInfo?._id || 'admin_id');
+            });
+        }
+        
+        socket.on('disconnect', () => {
+            console.log('Admin disconnected from socket server');
+        });
+        
+        socket.on('error', (error) => {
+            console.error('Socket connection error:', error);
+        });
+        
+        // Lắng nghe danh sách seller đang hoạt động
+        socket.on('activeSellers', (sellers) => {
+            dispatch(updateSellers(sellers));
+        });
+
+        return () => {
+            // Hủy đăng ký các sự kiện khi component unmount
+            socket.off('connect');
+            socket.off('disconnect');
+            socket.off('error');
+            socket.off('activeSellers');
+        }
+    }, [userInfo]);
+
     useEffect(() => {
         dispatch(get_sellers())
-    })
+    }, [])
 
     const send = (e) => {
-        e.preventDefault() 
-            dispatch(send_message_seller_admin({
-                senderId: '', 
-                receverId: sellerId,
-                message: text,
-                senderName: 'Admin Support'
-            }))
-            setText('') 
+        e.preventDefault();
+        
+        if (!text.trim() || !sellerId) return;
+        
+        const messageData = {
+            senderId: '', 
+            receverId: sellerId,
+            message: text,
+            senderName: 'Admin Support'
+        };
+        
+        console.log('Admin gửi tin nhắn:', messageData);
+        dispatch(send_message_seller_admin(messageData));
+        setText('');
     }
 
     useEffect(() => {
@@ -40,32 +80,41 @@ const ChatSeller = () => {
         }
     },[sellerId])
 
-    // useEffect(() => {
-    //     if (successMessage) {
-    //         socket.emit('send_message_admin_to_seller',seller_admin_message[seller_admin_message.length - 1])
-    //         dispatch(messageClear())
-    //     }
-    // },[successMessage])
-
     useEffect(() => {
         socket.on('receved_seller_message', msg => {
-             setReceverMessage(msg)
-        })
-         
-    },[])
+             console.log('Nhận tin nhắn từ seller:', msg);
+             setReceverMessage(msg);
+        });
+        
+        return () => {
+            socket.off('receved_seller_message');
+        };
+    }, []);
 
     useEffect(() => {
         if (receverMessage) {
-            if (receverMessage.senderId === sellerId && receverMessage.
-                receverId === '') {
-                dispatch(updateSellerMessage(receverMessage))
-            } else {
-                toast.success(receverMessage.senderName + " " + "Send A message")
-                dispatch(messageClear())
+            console.log('Xử lý tin nhắn nhận được:', receverMessage);
+            console.log('sellerId hiện tại:', sellerId);
+            
+            // Kiểm tra nếu tin nhắn từ seller hiện tại đang chọn
+            if (receverMessage.senderId === sellerId && receverMessage.receverId === '') {
+                console.log('Cập nhật tin nhắn từ seller hiện tại');
+                dispatch(updateSellerMessage(receverMessage));
+            } 
+            // Hiển thị thông báo nếu tin nhắn từ seller khác
+            else if (receverMessage.receverId === '') {
+                console.log('Thông báo tin nhắn từ seller khác');
+                toast.success(receverMessage.senderName + " đã gửi tin nhắn mới");
             }
         }
+    }, [receverMessage, sellerId]);
 
-    },[receverMessage])
+    useEffect(() => {
+        if (successMessage) {
+            socket.emit('send_message_admin_to_seller',seller_admin_message[seller_admin_message.length - 1])
+            dispatch(messageClear())
+        }
+    },[successMessage])
 
     useEffect(() => {
         scrollRef.current?.scrollIntoView({ behavior: 'smooth'})
@@ -139,7 +188,7 @@ const ChatSeller = () => {
         <div ref={scrollRef} className='w-full flex justify-start items-center'>
                         <div className='flex justify-start items-start gap-2 md:px-3 py-2 max-w-full lg:max-w-[85%]'>
                             <div>
-                                <img className='w-[38px] h-[38px] border-2 border-white rounded-full max-w-[38px] p-[3px]' src="http://localhost:3001/images/demo.jpg" alt="" />
+                                <img className='w-[38px] h-[38px] border-2 border-white rounded-full max-w-[38px] p-[3px]' src={currentSeller?.image || "http://localhost:3001/images/demo.jpg"} alt="" />
                             </div>
                             <div className='flex justify-center items-start flex-col w-full bg-blue-500 shadow-lg shadow-blue-500/50 text-white py-1 px-2 rounded-sm'>
                             <span>{m.message} </span>
