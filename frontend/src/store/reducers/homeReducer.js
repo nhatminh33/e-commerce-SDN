@@ -3,30 +3,59 @@ import api from "../../api/api";
 
 
 export const get_category = createAsyncThunk(
-    'product/get_category',
-    async(_, { fulfillWithValue }) => {
+    'product/get_categories',
+    async (_, { fulfillWithValue, rejectWithValue }) => {
         try {
-            const {data} = await api.get('/home/get-categorys')
-            // console.log(data)
-            return fulfillWithValue(data)
+            const { data } = await api.get('/get-categories');
+            console.log("Categories API Response:", data);
+            return fulfillWithValue(data);
         } catch (error) {
-            console.log(error.respone)
+            console.error("Categories API Error:", error.response);
+            return rejectWithValue(error.response?.data || "Error fetching categories");
         }
     }
-)
+);
+
 // End Method 
 export const get_products = createAsyncThunk(
     'product/get_products',
-    async(_, { fulfillWithValue }) => {
+    async (filters, { fulfillWithValue, rejectWithValue }) => {
         try {
-            const {data} = await api.get('/home/get-products')
-             console.log(data)
-            return fulfillWithValue(data)
+            const {
+                page = 1,
+                perPage = 10,
+                searchValue = '',
+                categoryId = '',
+                minPrice = 0,
+                maxPrice = 100,
+                minDiscount = 0,
+                sortBy = 'createdAt',
+                sortOrder = 'desc',
+                rating = 0
+            } = filters || {};
+
+            const { data } = await api.get('/get-products', {
+                page,
+                perPage,
+                searchValue,
+                categoryId,
+                minPrice,
+                maxPrice,
+                minDiscount,
+                sortBy,
+                sortOrder,
+                rating
+            });
+
+            console.log('API Response:', data); // Check the API response
+            return fulfillWithValue(data);
         } catch (error) {
-            console.log(error.respone)
+            console.error('Error fetching products:', error);
+            return rejectWithValue(error.response?.data || 'Error fetching products');
         }
     }
-)
+);
+
 // End Method 
 
 
@@ -106,7 +135,7 @@ export const get_banners = createAsyncThunk(
     'banner/get_banners',
     async( _ , { fulfillWithValue }) => {
         try {
-            const {data} = await api.get(`/banners`)
+            const {data} = await api.get(`/banner`)
             //  console.log(data)
             return fulfillWithValue(data)
         } catch (error) {
@@ -123,6 +152,8 @@ export const homeReducer = createSlice({
     name: 'home',
     initialState:{
         categorys : [],
+        loading: false,
+    error: null,
         products : [],
         totalProduct : 0,
         parPage: 3,
@@ -153,8 +184,17 @@ export const homeReducer = createSlice({
     },
     extraReducers: (builder) => {
         builder
+        .addCase(get_category.pending, (state) => {
+            state.loading = true;
+            state.error = null;
+        })
         .addCase(get_category.fulfilled, (state, { payload }) => {
-            state.categorys = payload.categorys;
+            state.loading = false;
+            state.categorys = payload.categorys || [];
+        })
+        .addCase(get_category.rejected, (state, { payload }) => {
+            state.loading = false;
+            state.error = payload;
         })
         .addCase(get_products.fulfilled, (state, { payload }) => {
             state.products = payload.products;

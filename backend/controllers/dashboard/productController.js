@@ -58,7 +58,8 @@ const get_products = async (req, res) => {
             maxPrice,
             minDiscount,
             sortBy = 'createdAt',
-            sortOrder = 'desc'
+            sortOrder = 'desc',
+            rating = 0
         } = req.body || {};
 
         const page = Math.max(1, Number(pageInput) || 1);
@@ -67,6 +68,10 @@ const get_products = async (req, res) => {
 
         // Xây dựng query filter
         let query = {};
+        
+        if(rating > 0){
+            query.rating = { $gte: rating }
+        }
 
         // Tìm kiếm theo tên
         if (searchValue) {
