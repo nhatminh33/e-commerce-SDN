@@ -9,7 +9,8 @@ const {
     refresh_token,
     logout,
     get_user,
-    profile_image_upload
+    profile_image_upload,
+    change_password,
 } = require('../controllers/authController');
 const authenticateToken = require('../middlewares/authenticateToken');
 
@@ -26,5 +27,5 @@ router.post('/logout', logout);
 router.get('/get-user', authenticateToken, get_user);
 router.post('/profile-image-upload', authenticateToken, profile_image_upload);
 router.put('/update-profile', authenticateToken, update_profile);
-
+router.put('/change-password', authenticateToken, change_password);
 module.exports = router;
