@@ -10,8 +10,8 @@ class ChatController {
       console.log("Raw Sender ID:", senderId);
       console.log("Raw Receiver ID:", receiverId);
   
-      const sender = await userModel.findById(new ObjectId(senderId));
-      const receiver = await userModel.findById(new ObjectId(receiverId));
+      const sender = await userModel.findById(senderId);
+      const receiver = await userModel.findById(receiverId);
   
       console.log("Sender:", sender);
       console.log("Receiver:", receiver);
@@ -69,20 +69,37 @@ class ChatController {
   };
 
   admin_message_insert = async (req, res) => {
-    const { senderId, receverId, message, senderName } = req.body;
+    const senderId = req.id
+    const { receverId, message, senderName } = req.body;
+    
     try {
-      const isValid = await this.validateChat(senderId, receverId, [["admin", "seller"], ["seller", "admin"]]);
-      if (!isValid) return responseReturn(res, 403, { error: "Unauthorized chat." });
+      // Kiểm tra nếu là admin gửi tin nhắn (senderId là rỗng hoặc null trong body)
+      if (req.body.senderId === '') {
+        const messageData = await adminSellerMessage.create({
+          senderId: '',
+          receverId,
+          message,
+          senderName: 'Admin Support'
+        });
+        return responseReturn(res, 200, { message: messageData });
+      }
+      
+      // Nếu là seller gửi tin nhắn
+      const sender = await userModel.findById(senderId);
+      if (!sender) {
+        return responseReturn(res, 404, { error: "Sender not found" });
+      }
       
       const messageData = await adminSellerMessage.create({
         senderId,
         receverId,
         message,
-        senderName,
+        senderName: sender.name,
       });
       responseReturn(res, 200, { message: messageData });
     } catch (error) {
       console.log(error);
+      responseReturn(res, 500, { error: "Server error" });
     }
   };
 
@@ -131,6 +148,70 @@ class ChatController {
       console.log(error);
     }
   };
+
+  // Lấy tất cả seller cho admin
+  get_sellers = async (req, res) => {
+    try {
+      const sellers = await userModel.find({ role: 'seller' }).select('name email image shopInfo')
+      
+      responseReturn(res, 200, { 
+        sellers
+      })
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  // Lấy tin nhắn giữa admin và một seller cụ thể
+  get_admin_messages = async (req, res) => {
+    const { receverId } = req.params
+    
+    try {
+      const messages = await adminSellerMessage.find({
+        $or: [
+          { $and: [{ senderId: '' }, { receverId }] },
+          { $and: [{ senderId: receverId }, { receverId: '' }] }
+        ]
+      }).sort({ createdAt: 1 })
+
+      const currentSeller = await userModel.findById(receverId).select('name email image shopInfo')
+      
+      responseReturn(res, 200, { 
+        messages,
+        currentSeller
+      })
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  // Lấy tin nhắn giữa seller và admin
+  get_seller_messages = async (req, res) => {
+    const sellerId = req.id
+    
+    try {
+      const messages = await adminSellerMessage.find({
+        $or: [
+          { $and: [{ senderId: '' }, { receverId: sellerId }] },
+          { $and: [{ senderId: sellerId }, { receverId: '' }] }
+        ]
+      }).sort({ createdAt: 1 })
+      
+      // Lấy thông tin admin để hiển thị
+      const adminInfo = {
+        name: 'Admin Support',
+        image: 'http://localhost:3001/images/admin.jpg'
+      }
+      
+      responseReturn(res, 200, { 
+        messages,
+        adminInfo
+      })
+    } catch (error) {
+      console.log(error)
+      responseReturn(res, 500, { error: "Server error" })
+    }
+  }
 }
 
 module.exports = new ChatController();

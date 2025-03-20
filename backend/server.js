@@ -9,6 +9,7 @@ const { rootRouter } = require('./routes/rootRouter')
 const server = http.createServer(app)
 const { Server } = require('socket.io')
 const notificationSocket = require('./socket/notificationSocket')
+const chatSocket = require('./socket/chatSocket')
 
 app.use(cors({
     origin : ['http://localhost:3000','http://localhost:3001'],
@@ -40,7 +41,15 @@ const io = new Server(server, {
     cors: {
         origin: ['http://localhost:3000', 'http://localhost:3001'],
         credentials: true
-    }
+    },
+    // Cấu hình kết nối lại
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    autoConnect: true
 })
 
 io.on('connection', (socket) => {
@@ -48,6 +57,9 @@ io.on('connection', (socket) => {
     
     // Xử lý thông báo
     notificationSocket(socket, io);
+    
+    // Xử lý chat
+    chatSocket(socket, io);
     
     // Xử lý ngắt kết nối
     socket.on('disconnect', () => {
