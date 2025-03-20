@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const sellerMiddleware = require('../../middlewares/sellerMiddleware');
-const { add_product, get_products, get_product, update_product, update_product_image, delete_product, seller_manage_products } = require('../../controllers/dashboard/productController');
+const { add_product, get_products, get_product, update_product, product_image_update, delete_product, seller_manage_products } = require('../../controllers/dashboard/productController');
 const authMiddleware = require('../../middlewares/authMiddleware');
 
 // Thêm sản phẩm mới (seller)
@@ -16,7 +16,7 @@ router.get('/product-get/:id', get_product);
 router.post('/product-update', sellerMiddleware, update_product);
 
 // Cập nhật hình ảnh sản phẩm
-router.post('/product-image-update', sellerMiddleware, update_product_image);
+router.post('/product-image-update', sellerMiddleware, product_image_update);
 
 // Xóa sản phẩm
 router.delete('/product-delete/:id', sellerMiddleware, delete_product);

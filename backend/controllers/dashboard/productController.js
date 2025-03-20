@@ -226,65 +226,64 @@ const update_product = async (req, res) => {
     }
 };
 
-const update_product_image = async (req, res) => {
-    const { productId } = req.params;
-    const form = formidable({ multiples: true });
+const product_image_update = async(req,res) => {
+    const form = formidable({ 
+        multiples: false,
+    });
 
     form.parse(req, async (err, fields, files) => {
         if (err) {
             return responseReturn(res, 400, { error: err.message });
         }
 
-        const productData = await productModel.findById(productId);
+        const {oldImage, productId} = fields;
+        const newImage = files.newImage;
 
-        if (!productData) {
-            return responseReturn(res, 404, { error: 'Product not found' });
-        }
-
-        let { oldImage } = fields;
-        let { newImage } = files;
-
+        
         if (!oldImage || !oldImage[0]) {
-            return responseReturn(res, 400, { error: 'Old image not found' });
+            return responseReturn(res, 400, { error: 'Old image URL is required' });
         }
 
-        if (!newImage) {
-            return responseReturn(res, 400, { error: 'New image is required' });
+        if (!productId || !productId[0]) {
+            return responseReturn(res, 400, { error: 'Product ID is required' });
+        }
+
+        if (!newImage || !newImage[0]) {
+            return responseReturn(res, 400, { error: 'New image file is required' });
         }
 
         try {
-            // Upload new image
-            const result = await cloudinaryService.uploader.upload(newImage.filepath, { folder: 'products' });
-            
-            if (!result) {
-                return responseReturn(res, 500, { error: 'Image upload failed' });
-            }
-
-            // Delete old image from Cloudinary
-            try {
-                const publicId = oldImage[0].split('/').pop().split('.')[0];
-                await cloudinaryService.uploader.destroy(`products/${publicId}`);
-            } catch (error) {
-                console.error('Error deleting old image:', error);
-                // Continue even if there's an error deleting
-            }
-
-            // Update image array
-            const updatedImages = productData.images.map(img => 
-                img === oldImage[0] ? result.url : img
-            );
-
-            await productModel.findByIdAndUpdate(productId, {
-                images: updatedImages,
+            const result = await cloudinaryService.uploader.upload(newImage[0].filepath, { 
+                folder: 'products',
             });
 
-            const updatedProduct = await productModel.findById(productId).populate('categoryId');
-            responseReturn(res, 200, { product: updatedProduct, message: 'Image updated successfully' });
+            if (result) {
+                const product = await productModel.findById(productId[0]);
+                if (!product) {
+                    return responseReturn(res, 404, { error: 'Product not found' });
+                }
+
+                // Find and replace old image URL with new one
+                const index = product.images.findIndex(img => img === oldImage[0]);
+                if (index === -1) {
+                    return responseReturn(res, 400, { error: 'Old image not found in product images' });
+                }
+
+                // Update the image URL
+                product.images[index] = result.url;
+                await product.save();
+
+                responseReturn(res, 200, {
+                    product,
+                    message: 'Product Image Updated Successfully'
+                });
+            }
         } catch (error) {
+            console.error('Image update error:', error);
             responseReturn(res, 500, { error: error.message });
         }
     });
-};
+}
 
 const delete_product = async (req, res) => {
     const { id } = req.params;
@@ -436,4 +435,4 @@ const seller_manage_products = async (req, res) => {
     }
 };
 
-module.exports = { add_product, get_products, get_product, update_product, update_product_image, delete_product, seller_manage_products }
+module.exports = { add_product, get_products, get_product, update_product, product_image_update, delete_product, seller_manage_products }
