@@ -99,4 +99,15 @@ userSchema.methods.generateEmailVerificationToken = function() {
     return verificationToken;
 };
 
+// Generate password reset token
+userSchema.methods.generatePasswordResetToken = function() {
+    const resetToken = Math.random().toString(36).substring(2, 15) + 
+                      Math.random().toString(36).substring(2, 15);
+    
+    this.passwordResetToken = resetToken;
+    this.passwordResetExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+    
+    return resetToken;
+};
+
 module.exports = model("User", userSchema);
