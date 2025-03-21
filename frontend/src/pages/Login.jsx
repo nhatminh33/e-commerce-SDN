@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { customer_login, messageClear } from '../store/reducers/authReducer';
 import toast from 'react-hot-toast';
 import { FadeLoader } from 'react-spinners';
+import ForgotPasswordModal from '../components/ForgotPasswordModal';
 
 const Login = () => {
 
@@ -16,6 +17,7 @@ const Login = () => {
     const dispatch = useDispatch()
     const [emailVerificationRequired, setEmailVerificationRequired] = useState(false);
     const [unverifiedEmail, setUnverifiedEmail] = useState('');
+    const [showForgotPassword, setShowForgotPassword] = useState(false);
 
     const [state, setState] = useState({
         email: '',
@@ -95,6 +97,17 @@ const Login = () => {
                                         <input onChange={inputHandle} value={state.password} className='w-full px-3 py-2 border border-slate-200 outline-none focus:border-green-500 rounded-md' type="password" name="password" id="password" placeholder='Password' required />
                                     </div>
 
+                                    <div className="flex justify-between items-center mb-4">
+                                        <div></div>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setShowForgotPassword(true)} 
+                                            className="text-blue-500 text-sm hover:underline"
+                                        >
+                                            Forgot Password?
+                                        </button>
+                                    </div>
+
                                     <button className='px-8 w-full py-2 bg-[#059473] shadow-lg hover:shadow-green-500/40 text-white rounded-md'>Login</button>
 
                                 </form>
@@ -142,6 +155,12 @@ const Login = () => {
             </div>
 
             <Footer />
+            
+            {/* Forgot Password Modal */}
+            <ForgotPasswordModal 
+                isOpen={showForgotPassword} 
+                onClose={() => setShowForgotPassword(false)} 
+            />
         </div>
     );
 };

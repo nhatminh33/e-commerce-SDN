@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const { createAccessToken, createRefreshToken, verifyRefreshToken } = require('../utiles/tokenCreate');
 const cloudinaryService = require('../utiles/cloudinaryService');
 const { responseReturn } = require('../utiles/response');
-const { sendVerificationEmail } = require('../utiles/emailService');
+const { sendVerificationEmail, sendPasswordResetEmail } = require('../utiles/emailService');
 const { formidable } = require('formidable');
 const addressModel = require('../models/addressModel');
 const accountModel = require('../models/accountModel');
@@ -465,32 +465,100 @@ const change_password = async (req, res) => {
     }
 };
 
-const reset_password = async (req, res) => {
+// Forgot Password
+const forgot_password = async (req, res) => {
     const { email } = req.body;
 
     try {
         const user = await userModel.findOne({ email });
+        
         if (!user) {
-            return responseReturn(res, 404, { error: "User not found" });
+            return responseReturn(res, 404, { error: "Email not found" });
         }
 
-        const newPassword = user.generatePassword();
-        user.password = await bcrypt.hash(newPassword, 10);
+        // Generate a password reset token
+        const resetToken = user.generatePasswordResetToken();
         await user.save();
 
-        return responseReturn(res, 200, { message: "Password reset successfully", newPassword });
+        // Send password reset email
+        await sendPasswordResetEmail(email, user.name, resetToken);
+
+        return responseReturn(res, 200, { 
+            message: "Password reset email sent successfully. Please check your email." 
+        });
 
     } catch (error) {
         return responseReturn(res, 500, { error: error.message });
     }
-}
+};
 
+// Reset Password
+const reset_password = async (req, res) => {
+    const { token, email, newPassword } = req.body;
+
+    try {
+        const user = await userModel.findOne({
+            email,
+            passwordResetToken: token,
+            passwordResetExpires: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return responseReturn(res, 400, { 
+                error: "Invalid or expired reset token" 
+            });
+        }
+
+        // Hash new password
+        user.password = await bcrypt.hash(newPassword, 10);
+        
+        // Clear reset token fields
+        user.passwordResetToken = undefined;
+        user.passwordResetExpires = undefined;
+        
+        await user.save();
+
+        return responseReturn(res, 200, { 
+            message: "Password has been reset successfully. You can now login with your new password." 
+        });
+
+    } catch (error) {
+        return responseReturn(res, 500, { error: error.message });
+    }
+};
+
+// Verify Password Reset Token
+const verify_reset_token = async (req, res) => {
+    const { token, email } = req.body;
+
+    try {
+        if (!token || !email) {
+            return responseReturn(res, 400, { error: "Token and email are required" });
+        }
+
+        const user = await userModel.findOne({
+            email,
+            passwordResetToken: token,
+            passwordResetExpires: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return responseReturn(res, 400, { error: "Invalid or expired reset token" });
+        }
+
+        return responseReturn(res, 200, { valid: true, message: "Token is valid" });
+
+    } catch (error) {
+        return responseReturn(res, 500, { error: error.message });
+    }
+};
 
 module.exports = { 
     admin_login, 
     customer_login,
     customer_register,
     verify_email,
+    verify_reset_token,
     resend_verification_email,
     update_profile,
     refresh_token,
@@ -498,5 +566,6 @@ module.exports = {
     get_user, 
     profile_image_upload,
     change_password,
-    reset_password
+    reset_password,
+    forgot_password
 };

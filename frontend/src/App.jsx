@@ -25,6 +25,7 @@ import Chat from './components/dashboard/Chat';
 import ConfirmOrder from './pages/ConfirmOrder';
 import VerifyEmail from './pages/VerifyEmail';
 import ResendVerification from './pages/ResendVerification';
+import ResetPassword from './pages/ResetPassword';
 
 function App() {
   const dispatch = useDispatch()
@@ -41,6 +42,7 @@ function App() {
       <Route path='/register' element={<Register/>} />
       <Route path='/verify-email/:token' element={<VerifyEmail/>} />
       <Route path='/resend-verification' element={<ResendVerification/>} />
+      <Route path='/reset-password/:token' element={<ResetPassword/>} />
       <Route path='/shops' element={<Shops/>} />
       <Route path='/card' element={<Card/>} />
       <Route path='/shipping' element={<Shipping/>} />
