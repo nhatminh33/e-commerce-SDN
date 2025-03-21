@@ -103,7 +103,7 @@ const Header = () => {
 
         <div className='w-white'>
          <div className='w-[85%] lg:w-[90%] mx-auto'>
-            <div className='h-[80px] md-lg:h-[100px] flex justify-between items-center flex-wrap'>
+            <div className='h-[90px] md-lg:h-[100px] flex justify-between items-center flex-wrap'>
               
                 <div className='md-lg:w-full w-3/12 md-lg:pt-4'>
                     <div className='flex justify-between items-center'>
