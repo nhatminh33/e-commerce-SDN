@@ -123,14 +123,18 @@ const get_products = async (req, res) => {
         }
 
         // Filter by price range
-        if (minPrice !== undefined && minPrice !== '' || maxPrice !== undefined && maxPrice !== '') {
+        if ((minPrice !== undefined && minPrice !== '') || (maxPrice !== undefined && maxPrice !== '')) {
             query.price = {};
-            if (minPrice !== undefined && minPrice !== '') {
+            
+            if (!isNaN(minPrice)) {
                 query.price.$gte = Number(minPrice);
             }
-            if (maxPrice !== undefined && maxPrice !== '') {
+            if (!isNaN(maxPrice)) {
                 query.price.$lte = Number(maxPrice);
             }
+
+            console.log(req.query.minPrice, req.query.maxPrice);
+
         }
 
         // Filter by minimum discount

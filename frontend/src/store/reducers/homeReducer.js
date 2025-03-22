@@ -18,7 +18,7 @@ export const get_category = createAsyncThunk(
 
 // End Method 
 export const get_products = createAsyncThunk(
-    'product/get_products',
+    '/products-get',
     async (filters, { fulfillWithValue, rejectWithValue }) => {
         try {
             const {
@@ -34,7 +34,7 @@ export const get_products = createAsyncThunk(
                 rating = 0
             } = filters || {};
 
-            const { data } = await api.get('/get-products', {
+            const { data } = await api.get('/products-get', {
                 page,
                 perPage,
                 searchValue,

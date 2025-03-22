@@ -12,15 +12,19 @@ const Home = () => {
   const dispatch = useDispatch();
   const { products, totalProduct } = useSelector((state) => state.home);
 
-  const [rating, setRating] = useState("");
-  const priceRange = { low: 0, high: 10000000 };
-  const [state, setState] = useState({ values: [0, 10000000] });
+  const priceRange = { low: 0, high: 2000 };
+  const [state, setState] = useState({ values: [0, 2000] });
+  const [rating, setRating] = useState(0);
   const [sortPrice, setSortPrice] = useState("");
   const [page, setPage] = useState(1);
   const perPage = 10;
 
-  // Fetch products with filters
   useEffect(() => {
+    // Initial Fetch Without Filters
+    dispatch(get_products({ page, perPage }));
+  }, [dispatch, page]);
+
+  const applyFilters = () => {
     const sortBy = sortPrice === "low-to-high" ? "price" : "price";
     const sortOrder = sortPrice === "low-to-high" ? "asc" : "desc";
 
@@ -35,7 +39,7 @@ const Home = () => {
         sortOrder,
       })
     );
-  }, [dispatch, state.values, rating, sortPrice, page]);
+  };
 
   return (
     <div className="w-full">
@@ -85,18 +89,23 @@ const Home = () => {
               type="number"
               value={rating}
               onChange={(e) => {
-                const value = e.target.value;
-                setRating(value >= 1 && value <= 5 ? value : "");
+                const value = parseInt(e.target.value);
+                setRating(value >= 1 && value <= 5 ? value : 0);
               }}
               min={1}
               max={5}
               className="w-full p-2 border rounded-lg outline-none"
               placeholder="Enter rating (1 - 5)"
             />
-            <small className="text-gray-500">
-              Enter a rating between 1 and 5
-            </small>
           </div>
+
+          {/* Apply Filters Button */}
+          <button
+            onClick={applyFilters}
+            className="px-4 py-2 mt-4 bg-blue-500 text-white rounded-lg"
+          >
+            Apply Filters
+          </button>
         </aside>
 
         {/* Main Content */}
@@ -116,7 +125,7 @@ const Home = () => {
               </select>
             </div>
           </div>
-          <FeatureProducts products={products} />
+          {/* <FeatureProducts products={products} /> */}
         </div>
       </div>
 
