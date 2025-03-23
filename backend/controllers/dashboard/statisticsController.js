@@ -4,6 +4,7 @@ const orderModel = require("../../models/orderModel");
 const myShopWallet = require("../../models/myShopWallet");
 const userModel = require("../../models/userModel");
 const productModel = require("../../models/productModel");
+const categoryModel = require("../../models/categoryModel");
 
 // Flexible revenue statistics API with multiple parameters
 const get_revenue = async (req, res) => {
@@ -333,6 +334,31 @@ const get_dashboard_summary = async (req, res) => {
         
         // Get seller count
         const totalSellers = await userModel.countDocuments({ role: "seller" });
+
+        // Get recent orders
+        const recentOrders = await orderModel.find()
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .select('_id totalPrice payment_status delivery_status date')
+            .lean()
+            .exec();
+
+        // Get recent messages from sellers to admin
+        const messages = await userModel.aggregate([
+            { $match: { role: "seller" } },
+            { $limit: 5 },
+            { 
+                $project: { 
+                    _id: 1, 
+                    name: 1, 
+                    image: 1, 
+                    createdAt: 1,
+                    message: { $literal: "Hello Admin, I'm a seller" },
+                    senderId: "$_id",
+                    senderName: "$name"
+                } 
+            }
+        ]);
         
         responseReturn(res, 200, {
             orders: {
@@ -351,7 +377,13 @@ const get_dashboard_summary = async (req, res) => {
             users: {
                 customers: totalCustomers,
                 sellers: totalSellers
-            }
+            },
+            totalSale: totalRevenue,
+            totalOrder: totalOrders,
+            totalProduct: await productModel.countDocuments(),
+            totalSeller: totalSellers,
+            recentOrders,
+            messages
         });
     } catch (error) {
         console.error('Get dashboard summary error:', error);
@@ -833,9 +865,222 @@ const get_seller_statistics = async (req, res) => {
     }
 };
 
+const get_orders = async (req, res) => {
+    const { page, searchValue, parPage, orderStatus, paymentStatus, startDate, endDate } = req.query;
+    try {
+        let skipPage = (parseInt(page) - 1) * parseInt(parPage);
+        
+        // Tạo query cơ bản
+        let query = {};
+        
+        // Thêm điều kiện tìm kiếm từ khóa nếu có
+        if (searchValue) {
+            query.$or = [
+                { 'userId.name': { $regex: searchValue, $options: 'i' } },
+                { 'userId.email': { $regex: searchValue, $options: 'i' } }
+            ];
+        }
+        
+        // Thêm lọc theo trạng thái đơn hàng nếu có
+        if (orderStatus) {
+            query.delivery_status = orderStatus;
+        }
+        
+        // Thêm lọc theo trạng thái thanh toán nếu có
+        if (paymentStatus) {
+            query.payment_status = paymentStatus;
+        }
+        
+        // Thêm lọc theo khoảng thời gian nếu có
+        if (startDate && endDate) {
+            query.createdAt = {
+                $gte: new Date(startDate),
+                $lte: new Date(endDate)
+            };
+        }
+        
+        // Đếm tổng số đơn hàng theo điều kiện lọc
+        const totalOrder = await orderModel.countDocuments(query);
+        
+        // Lấy dữ liệu đơn hàng với populate thông tin người dùng
+        const orders = await orderModel.find(query)
+            .populate('userId', 'name email image')
+            .skip(skipPage)
+            .limit(parseInt(parPage))
+            .sort({ createdAt: -1 });
+        
+        // Trả về kết quả với pagination
+        return responseReturn(res, 200, { orders, totalOrder });
+    } catch (error) {
+        console.error('Error in get_orders:', error);
+        return responseReturn(res, 500, { error: 'Internal server error' });
+    }
+};
+
+// Get monthly chart data for admin dashboard
+const get_admin_chart_data = async (req, res) => {
+    try {
+        const currentYear = new Date().getFullYear();
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        // Initialize arrays for chart data
+        const monthlyOrders = Array(12).fill(0);
+        const monthlyRevenue = Array(12).fill(0);
+        const monthlySellers = Array(12).fill(0);
+        
+        // Calculate monthly orders and revenue
+        const orders = await orderModel.find({
+            createdAt: {
+                $gte: new Date(`${currentYear}-01-01`),
+                $lte: new Date(`${currentYear}-12-31`)
+            }
+        });
+        
+        orders.forEach(order => {
+            const month = order.createdAt.getMonth();
+            monthlyOrders[month]++;
+            
+            if (order.payment_status === 'paid') {
+                monthlyRevenue[month] += order.totalPrice;
+            }
+        });
+        
+        // Calculate monthly new sellers
+        const sellers = await userModel.find({
+            role: 'seller',
+            createdAt: {
+                $gte: new Date(`${currentYear}-01-01`),
+                $lte: new Date(`${currentYear}-12-31`) 
+            }
+        });
+        
+        sellers.forEach(seller => {
+            const month = seller.createdAt.getMonth();
+            monthlySellers[month]++;
+        });
+        
+        responseReturn(res, 200, {
+            labels: months,
+            orders: monthlyOrders,
+            revenue: monthlyRevenue,
+            sellers: monthlySellers
+        });
+    } catch (error) {
+        console.error('Get admin chart data error:', error);
+        responseReturn(res, 500, { error: error.message });
+    }
+};
+
+// Get order details for admin
+const get_admin_order_details = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        
+        if (!orderId) {
+            return responseReturn(res, 400, { error: "Order ID is required" });
+        }
+        
+        // Tìm đơn hàng và populate thông tin người dùng và sản phẩm
+        const order = await orderModel.findById(orderId)
+            .populate('userId', 'name email image')
+            .lean();
+            
+        if (!order) {
+            return responseReturn(res, 404, { error: "Order not found" });
+        }
+        
+        // Lấy thông tin chi tiết về các sản phẩm trong đơn hàng
+        const enhancedProducts = [];
+        
+        for (const product of order.products) {
+            const productInfo = await productModel.findById(product.productId)
+                .select('name slug price discount brand category categoryId images stock description sellerId')
+                .populate('categoryId', 'name')
+                .populate('sellerId', 'name email shopInfo')
+                .lean();
+                
+            if (productInfo) {
+                enhancedProducts.push({
+                    ...product,
+                    productInfo
+                });
+            } else {
+                enhancedProducts.push({
+                    ...product,
+                    productInfo: { name: "Sản phẩm không còn tồn tại", images: [] }
+                });
+            }
+        }
+        
+        // Thay thế mảng sản phẩm ban đầu bằng mảng đã được bổ sung thông tin
+        order.products = enhancedProducts;
+        
+        responseReturn(res, 200, { order });
+    } catch (error) {
+        console.error('Get admin order details error:', error);
+        responseReturn(res, 500, { error: error.message });
+    }
+};
+
+const admin_order_status_update = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { status } = req.body;
+        
+        if (!orderId) {
+            return responseReturn(res, 400, { message: 'Order ID is required' });
+        }
+        
+        if (!status || !['pending', 'shipping', 'delivered', 'cancelled'].includes(status)) {
+            return responseReturn(res, 400, { message: 'Invalid delivery status' });
+        }
+        
+        const orderModel = require('../../models/orderModel');
+        const order = await orderModel.findById(orderId);
+        
+        if (!order) {
+            return responseReturn(res, 404, { message: 'Order not found' });
+        }
+        
+        order.delivery_status = status;
+        await order.save();
+        
+        // Trả về cả order đã cập nhật và message để client có thể cập nhật UI
+        responseReturn(res, 200, { 
+            message: 'Order status updated successfully',
+            order
+        });
+    } catch (error) {
+        console.error('Update order status error:', error);
+        responseReturn(res, 500, { message: error.message });
+    }
+}
+
+// API lấy tất cả danh mục sản phẩm
+const get_all_categories = async (req, res) => {
+    try {
+        const categorys = await categoryModel.find().sort({ createdAt: -1 });
+        const totalCategory = await categoryModel.countDocuments();
+        
+        responseReturn(res, 200, {
+            categorys,
+            totalCategory,
+            pages: 1
+        });
+    } catch (error) {
+        console.error("Error fetching all categories:", error);
+        responseReturn(res, 500, { error: "Failed to fetch categories" });
+    }
+};
+
 module.exports = {
     get_revenue,
     get_dashboard_summary,
     get_customer_statistics,
-    get_seller_statistics
+    get_seller_statistics,
+    get_orders,
+    get_admin_chart_data,
+    get_admin_order_details,
+    admin_order_status_update,
+    get_all_categories
 }; 

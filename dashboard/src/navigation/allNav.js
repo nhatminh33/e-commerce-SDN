@@ -12,6 +12,7 @@ import { IoChatbubbles } from "react-icons/io5";
 import { BsFillChatQuoteFill } from "react-icons/bs";
 import { CgProfile } from "react-icons/cg";
 import { IoMdNotificationsOutline } from "react-icons/io";
+import { BsBoxSeam } from "react-icons/bs";
 
 export const allNav = [
     {
@@ -44,11 +45,18 @@ export const allNav = [
     },
     {
         id : 5,
-        title : 'Payment Request',
-        icon : <MdPayment />,
+        title : 'Products',
+        icon : <BsBoxSeam />,
         role : 'admin',
-        path: '/admin/dashboard/payment-request'
+        path: '/admin/dashboard/products'
     },
+    // {
+    //     id : 5,
+    //     title : 'Payment Request',
+    //     icon : <MdPayment />,
+    //     role : 'admin',
+    //     path: '/admin/dashboard/payment-request'
+    // },
     // {
     //     id : 6,
     //     title : 'Deactive Sellers',
@@ -56,13 +64,13 @@ export const allNav = [
     //     role : 'admin',
     //     path: '/admin/dashboard/deactive-sellers'
     // },
-    {
-        id : 7,
-        title : 'Seller Request',
-        icon : <FaCodePullRequest />,
-        role : 'admin',
-        path: '/admin/dashboard/sellers-request'
-    },
+    // {
+    //     id : 7,
+    //     title : 'Seller Request',
+    //     icon : <FaCodePullRequest />,
+    //     role : 'admin',
+    //     path: '/admin/dashboard/sellers-request'
+    // },
     {
         id : 8,
         title : 'Live Chat',

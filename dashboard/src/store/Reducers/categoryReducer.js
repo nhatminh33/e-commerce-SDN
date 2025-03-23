@@ -36,7 +36,23 @@ export const get_category = createAsyncThunk(
 
   // End Method 
 
-  export const updateCategory = createAsyncThunk(
+export const get_categories = createAsyncThunk(
+    'category/get_categories',
+    async(_, {rejectWithValue, fulfillWithValue}) => {
+        try {
+            const {data} = await api.get('/statistics/get-all-categories', {
+                withCredentials: true
+            }) 
+            return fulfillWithValue(data)
+        } catch (error) {
+            return rejectWithValue(error.response.data)
+        }
+    }
+)
+
+// End Method
+
+export const updateCategory = createAsyncThunk(
     'category/updateCategory',
     async({id, formData}, {rejectWithValue, fulfillWithValue}) => {
         try { 
@@ -115,6 +131,20 @@ export const categoryReducer = createSlice({
         .addCase(get_category.rejected, (state, { payload }) => {
             state.loader = false
             state.errorMessage = payload?.error || 'Failed to fetch categories'
+        })
+
+        .addCase(get_categories.pending, (state) => {
+            state.loader = true
+        })
+        .addCase(get_categories.fulfilled, (state, { payload }) => {
+            state.loader = false
+            state.totalCategory = payload.totalCategory
+            state.categorys = payload.categorys
+            state.pages = payload.pages
+        })
+        .addCase(get_categories.rejected, (state, { payload }) => {
+            state.loader = false
+            state.errorMessage = payload?.error || 'Failed to fetch all categories'
         })
 
         .addCase(updateCategory.pending, (state) => {

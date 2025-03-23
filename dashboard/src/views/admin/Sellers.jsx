@@ -100,7 +100,6 @@ const Sellers = () => {
                                 <th scope='col' className='py-3 px-4'>No</th>
                                 <th scope='col' className='py-3 px-4'>Image</th>
                                 <th scope='col' className='py-3 px-4'>Name</th>
-                                <th scope='col' className='py-3 px-4'>Shop Name</th>
                                 {/* <th scope='col' className='py-3 px-4'>Payment Status</th> */}
                                 <th scope='col' className='py-3 px-4'>Email</th>
                                 <th scope='col' className='py-3 px-4'>Status</th>
@@ -117,14 +116,10 @@ const Sellers = () => {
                                         <img className='w-[45px] h-[45px]' src={d.image ? d.image : '/images/admin.jpg'} alt="" />
                                     </td>
                                     <td scope='row' className='py-1 px-4 font-medium whitespace-nowrap'>{d.name} </td>
-                                    <td scope='row' className='py-1 px-4 font-medium whitespace-nowrap'>{d.shopInfo?.shopName}</td>
-                                    <td scope='row' className='py-1 px-4 font-medium whitespace-nowrap'>
-                                        <span>{d.payment}</span> </td>
                                     <td scope='row' className='py-1 px-4 font-medium whitespace-nowrap'>{d.email} </td>
 
                                     <td scope='row' className='py-1 px-4 font-medium whitespace-nowrap'>{d.status} </td>
 
-                                    <td scope='row' className='py-1 px-4 font-medium whitespace-nowrap'>{d.shopInfo?.district} </td>
 
                                     <td scope='row' className='py-1 px-4 font-medium whitespace-nowrap'>
                                         <div className='flex justify-start items-center gap-4'>

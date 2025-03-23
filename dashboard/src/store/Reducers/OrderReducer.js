@@ -3,14 +3,28 @@ import api from "../../api/api";
  
 export const get_admin_orders = createAsyncThunk(
     'orders/get_admin_orders',
-    async({ parPage,page,searchValue },{rejectWithValue, fulfillWithValue}) => {
-        
+    async({ 
+        parPage = 5, 
+        page = 1, 
+        searchValue = "", 
+        orderStatus = "", 
+        paymentStatus = "", 
+        startDate = "", 
+        endDate = "" 
+    }, {rejectWithValue, fulfillWithValue}) => {
         try {
-             
-            const {data} = await api.get(`/admin/orders?page=${page}&searchValue=${searchValue}&parPage=${parPage}`,{withCredentials: true})  
-            return fulfillWithValue(data)
+            let url = `/statistics/get-orders?page=${page}&searchValue=${searchValue}&parPage=${parPage}`;
+            
+            // Add filters to URL if provided
+            if (orderStatus) url += `&orderStatus=${orderStatus}`;
+            if (paymentStatus) url += `&paymentStatus=${paymentStatus}`;
+            if (startDate) url += `&startDate=${startDate}`;
+            if (endDate) url += `&endDate=${endDate}`;
+            
+            const {data} = await api.get(url, {withCredentials: true});
+            return fulfillWithValue(data);
         } catch (error) { 
-            return rejectWithValue(error.response.data)
+            return rejectWithValue(error.response?.data || { error: "Failed to load orders" });
         }
     }
 )
@@ -188,11 +202,27 @@ export const OrderReducer = createSlice({
         .addCase(get_admin_order.fulfilled, (state, { payload }) => {
             state.order = payload.order; 
         })
+        .addCase(admin_order_status_update.pending, (state) => {
+            state.loading = true
+        })
         .addCase(admin_order_status_update.rejected, (state, { payload }) => {
+            state.loading = false
             state.errorMessage = payload.message; 
         })
         .addCase(admin_order_status_update.fulfilled, (state, { payload }) => {
-            state.successMessage = payload.message; 
+            state.loading = false
+            state.successMessage = payload.message;
+            // Cập nhật trạng thái đơn hàng đang xem
+            if (payload.order) {
+                state.order = {...state.order, delivery_status: payload.order.delivery_status};
+                
+                // Cập nhật trạng thái trong danh sách đơn hàng nếu có
+                state.myOrders = state.myOrders.map(order => 
+                    order._id === payload.order._id ? 
+                    {...order, delivery_status: payload.order.delivery_status} : 
+                    order
+                )
+            } 
         })
 
         .addCase(get_seller_order.fulfilled, (state, { payload }) => {

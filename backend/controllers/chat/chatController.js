@@ -220,32 +220,15 @@ class ChatController {
   // Lấy tất cả seller cho admin
   get_sellers = async (req, res) => {
     try {
-      const customerId = req.userId;
-
-      // Find all distinct seller IDs that this customer has chatted with
-      const distinctSellers = await sellerCustomerMessage.distinct('receverId', { senderId: customerId });
+      const sellers = await userModel.find({ role: 'seller' }).select('name email image')
       
-      // Get seller details for each ID
-      const sellers = await Promise.all(
-        distinctSellers.map(async (sellerId) => {
-          const seller = await userModel.findById(sellerId).select('name shopInfo');
-          return {
-            _id: seller._id,
-            name: seller.name,
-            shopName: seller.shopInfo?.shopName || 'Shop',
-            avatar: seller.shopInfo?.avatar || '/images/seller.png'
-          };
-        })
-      );
-
-      res.status(200).json({ sellers });
+      responseReturn(res, 200, { 
+        sellers
+      })
     } catch (error) {
-      console.error('Error in get_sellers:', error);
-      res.status(500).json({
-        error: error.message
-      });
+      console.log(error)
     }
-  };
+  }
 
   // Lấy tin nhắn giữa admin và một seller cụ thể
   get_admin_messages = async (req, res) => {

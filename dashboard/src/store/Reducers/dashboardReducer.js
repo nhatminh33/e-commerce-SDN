@@ -14,6 +14,19 @@ export const get_admin_dashboard_data = createAsyncThunk(
 )
 // End method
 
+export const get_admin_chart_data = createAsyncThunk(
+    'dashboard/get_admin_chart_data',
+    async( _ ,{rejectWithValue, fulfillWithValue}) => { 
+        try {
+            const {data} = await api.get('/statistics/get-admin-chart-data',{withCredentials: true})             
+            return fulfillWithValue(data)
+        } catch (error) { 
+            return rejectWithValue(error.response.data)
+        }
+    }
+)
+// End method
+
 export const get_seller_dashboard_data = createAsyncThunk(
     'dashboard/get_seller_dashboard_data',
     async( _ ,{rejectWithValue, fulfillWithValue}) => { 
@@ -39,12 +52,15 @@ export const dashboardReducer = createSlice({
         totalSeller:0,
         recentOrder: [],
         recentMessage: [],
-        chartData: []
+        chartData: [],
+        errorMessage: '',
+        successMessage: ''
     },
     reducers : {
 
         messageClear : (state,_) => {
             state.errorMessage = ""
+            state.successMessage = ""
         }
 
     },
@@ -57,6 +73,12 @@ export const dashboardReducer = createSlice({
             state.totalSeller = payload.totalSeller
             state.recentOrder = payload.recentOrders
             state.recentMessage = payload.messages
+        })
+        .addCase(get_admin_chart_data.fulfilled, (state, { payload }) => {
+            state.chartData = payload
+        })
+        .addCase(get_admin_chart_data.rejected, (state, { payload }) => {
+            state.errorMessage = payload?.error || "Failed to load chart data"
         })
         .addCase(get_seller_dashboard_data.fulfilled, (state, { payload }) => {
             state.totalSale = payload.totalSale

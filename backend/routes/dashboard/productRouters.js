@@ -2,6 +2,7 @@ const router = require('express').Router();
 const sellerMiddleware = require('../../middlewares/sellerMiddleware');
 const { add_product, get_products, get_product, update_product, product_image_update, delete_product, seller_manage_products } = require('../../controllers/dashboard/productController');
 const authMiddleware = require('../../middlewares/authMiddleware');
+const systemMiddleware = require('../../middlewares/systemMiddleware');
 
 /**
  * @swagger
@@ -238,7 +239,7 @@ router.post('/product-update', sellerMiddleware, update_product);
  *       404:
  *         description: Không tìm thấy sản phẩm
  */
-router.post('/product-image-update', sellerMiddleware, product_image_update);
+router.post('/product-image-update', systemMiddleware, product_image_update);
 
 /**
  * @swagger

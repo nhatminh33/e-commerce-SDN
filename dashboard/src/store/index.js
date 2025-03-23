@@ -1,15 +1,33 @@
 import {configureStore} from '@reduxjs/toolkit'
-import rootReducer from './rootReducers'
+import authReducer from './Reducers/authReducer'
+import categoryReducer from './Reducers/categoryReducer'
+import productReducer from './Reducers/productReducer'
+import sellerReducer from './Reducers/sellerReducer'
+import chatReducer from './Reducers/chatReducer'
+import OrderReducer from './Reducers/OrderReducer'
+import PaymentReducer from './Reducers/PaymentReducer'
+import dashboardReducer from './Reducers/dashboardReducer'
+import bannerReducer from './Reducers/bannerReducer'
+import notificationReducer from './Reducers/notificationReducer'
 
 const store = configureStore({
-
-    reducer : rootReducer,
-    middleware : getDefaultMiddleware => {
+    reducer: {
+        auth: authReducer,
+        category: categoryReducer,
+        product: productReducer,
+        seller: sellerReducer,
+        chat: chatReducer,
+        order: OrderReducer,
+        payment: PaymentReducer,
+        dashboard: dashboardReducer,
+        banner: bannerReducer,
+        notification: notificationReducer
+    },
+    middleware: getDefaultMiddleware => {
         return getDefaultMiddleware({
-            serializableCheck : false
+            serializableCheck: false
         })
     },
-    devTools : true
-
+    devTools: true
 })
 export default store
