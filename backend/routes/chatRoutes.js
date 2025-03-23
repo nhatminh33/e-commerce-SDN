@@ -1,6 +1,7 @@
 const ChatController = require("../controllers/chat/chatController");
 const authenticateToken = require("../middlewares/authenticateToken");
 const router = require("express").Router();
+const { authMiddleware } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
@@ -24,19 +25,29 @@ const router = require("express").Router();
  *           schema:
  *             type: object
  *             required:
- *               - senderId
- *               - receiverId
- *               - message
+ *               - userId
+ *               - sellerId
+ *               - text
+ *               - name
  *             properties:
- *               senderId:
+ *               userId:
  *                 type: string
  *                 description: ID người gửi
- *               receiverId:
+ *               sellerId:
  *                 type: string
  *                 description: ID người nhận
- *               message:
+ *               text:
  *                 type: string
  *                 description: Nội dung tin nhắn
+ *               name:
+ *                 type: string
+ *                 description: Tên người gửi
+ *               productId:
+ *                 type: string
+ *                 description: ID sản phẩm (nếu có)
+ *               productName:
+ *                 type: string
+ *                 description: Tên sản phẩm (nếu có)
  *     responses:
  *       201:
  *         description: Tin nhắn đã được gửi thành công
@@ -252,5 +263,181 @@ router.get("/chat/get-admin-messages/:receverId", authenticateToken, ChatControl
  *         description: Không có quyền truy cập
  */
 router.get("/chat/get-seller-messages", authenticateToken, ChatController.get_seller_messages);
+
+/**
+ * @swagger
+ * /chat/seller/get-customers:
+ *   get:
+ *     summary: Lấy danh sách khách hàng đã chat với người bán đang đăng nhập
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Danh sách khách hàng đã chat với người bán
+ *       401:
+ *         description: Không có quyền truy cập
+ *       404:
+ *         description: Không tìm thấy dữ liệu
+ */
+router.get("/chat/seller/get-customers", authenticateToken, ChatController.get_seller_customers);
+
+/**
+ * @swagger
+ * /chat/seller/get-customer-messages/{customerId}:
+ *   get:
+ *     summary: Lấy tin nhắn giữa seller đang đăng nhập và một customer cụ thể
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: customerId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID của khách hàng
+ *     responses:
+ *       200:
+ *         description: Tin nhắn giữa seller và customer
+ *       401:
+ *         description: Không có quyền truy cập
+ *       404:
+ *         description: Không tìm thấy dữ liệu
+ */
+router.get("/chat/seller/get-customer-messages/:customerId", authenticateToken, ChatController.get_seller_customer_messages);
+
+/**
+ * @swagger
+ * /chat/seller/send-message-to-customer:
+ *   post:
+ *     summary: Gửi tin nhắn từ seller đang đăng nhập đến customer
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - customerId
+ *               - message
+ *             properties:
+ *               customerId:
+ *                 type: string
+ *                 description: ID của khách hàng
+ *               message:
+ *                 type: string
+ *                 description: Nội dung tin nhắn
+ *               senderName:
+ *                 type: string
+ *                 description: Tên người gửi (tùy chọn)
+ *     responses:
+ *       201:
+ *         description: Tin nhắn đã được gửi thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Không có quyền truy cập
+ */
+router.post("/chat/seller/send-message-to-customer", authenticateToken, ChatController.seller_message_add);
+
+/**
+ * @swagger
+ * /chat/seller/unread-counts:
+ *   get:
+ *     summary: Lấy số lượng tin nhắn chưa đọc của mỗi customer
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Số lượng tin nhắn chưa đọc
+ *       401:
+ *         description: Không có quyền truy cập
+ */
+router.get("/chat/seller/unread-counts", authenticateToken, ChatController.count_unread_customer_messages);
+
+/**
+ * @swagger
+ * /chat/seller/mark-as-read/{customerId}:
+ *   patch:
+ *     summary: Đánh dấu tin nhắn của một customer là đã đọc
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: customerId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID của khách hàng
+ *     responses:
+ *       200:
+ *         description: Đã cập nhật trạng thái tin nhắn thành công
+ *       401:
+ *         description: Không có quyền truy cập
+ */
+router.patch("/chat/seller/mark-as-read/:customerId", authenticateToken, ChatController.mark_message_as_read);
+
+/**
+ * @swagger
+ * /chat/customer/get-sellers:
+ *   get:
+ *     summary: Lấy danh sách người bán đã chat với khách hàng đang đăng nhập
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Danh sách người bán đã chat với khách hàng
+ *       401:
+ *         description: Không có quyền truy cập
+ *       404:
+ *         description: Không tìm thấy dữ liệu
+ */
+router.get("/chat/customer/get-sellers", authenticateToken, ChatController.get_customer_sellers);
+
+/**
+ * @swagger
+ * /chat/customer/unread-counts:
+ *   get:
+ *     summary: Lấy số lượng tin nhắn chưa đọc của khách hàng từ mỗi người bán
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Số lượng tin nhắn chưa đọc
+ *       401:
+ *         description: Không có quyền truy cập
+ */
+router.get("/chat/customer/unread-counts", authenticateToken, ChatController.count_unread_seller_messages);
+
+/**
+ * @swagger
+ * /chat/customer/mark-as-read/{sellerId}:
+ *   patch:
+ *     summary: Đánh dấu tin nhắn từ một người bán là đã đọc
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: sellerId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID của người bán
+ *     responses:
+ *       200:
+ *         description: Đã cập nhật trạng thái tin nhắn thành công
+ *       401:
+ *         description: Không có quyền truy cập
+ */
+router.patch("/chat/customer/mark-as-read/:sellerId", authenticateToken, ChatController.customer_mark_as_read);
 
 module.exports = router;

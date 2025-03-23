@@ -11,6 +11,8 @@ import { FaFacebookF} from "react-icons/fa";
 import { FaTwitter } from "react-icons/fa6";
 import { FaLinkedin } from "react-icons/fa";
 import { FaGithub } from "react-icons/fa";
+import { IoChatbubbleEllipses } from "react-icons/io5";
+import ProductChat from '../components/ProductChat';
 import Reviews from '../components/Reviews';
 import {Pagination } from 'swiper/modules';
 import 'swiper/css'; 
@@ -30,6 +32,7 @@ const Details = () => {
     const {product} = useSelector(state => state.home)
     const {userInfo } = useSelector(state => state.auth)
     const {errorMessage,successMessage } = useSelector(state => state.card)
+    const [showChat, setShowChat] = useState(false);
 
     useEffect(() => {
         dispatch(product_details(_id))
@@ -167,9 +170,43 @@ const Details = () => {
         }) 
    }
 
+    const chatWithSeller = () => {
+        if (!userInfo) {
+            toast.error("Vui lòng đăng nhập để chat với người bán");
+            navigate('/login');
+            return;
+        }
+        
+        if (!product || !product.sellerId) {
+            toast.error("Không tìm thấy thông tin người bán");
+            return;
+        }
+        
+        if (userInfo.role !== 'customer') {
+            toast.error("Chỉ khách hàng mới có thể chat với người bán");
+            console.error("User role không phải customer:", userInfo.role);
+            return;
+        }
+        
+        console.log("Product:", product);
+        console.log("Seller ID:", product.sellerId);
+        console.log("User Info:", userInfo);
+        
+        setShowChat(true);
+    }
 
     return (
         <div>
+            {showChat && product?.sellerId && (
+                <ProductChat 
+                    sellerId={product.sellerId?._id || product.sellerId}
+                    sellerInfo={product.sellerId}
+                    productId={_id}
+                    productName={product.name}
+                    onClose={() => setShowChat(false)}
+                />
+            )}
+            
             <Header/>
     <section className='bg-[url("http://localhost:3000/images/banner/shop.png")] h-[220px] mt-6 bg-cover bg-no-repeat relative bg-left'>
     <div className='absolute left-0 top-0 w-full h-full bg-[#2422228a]'>
@@ -315,9 +352,13 @@ const Details = () => {
                 {
                     product.stock ? <button onClick={buynow} className='px-8 py-3 h-[50px] cursor-pointer hover:shadow-lg hover:shadow-green-500/40 bg-[#247462] text-white'>Buy Now</button> : ''
                 }
-                <Link to={`/dashboard/chat/${product.sellerId}`} className='px-8 py-3 h-[50px] cursor-pointer hover:shadow-lg hover:shadow-red-500/40 bg-red-500 text-white'>
-                    Chat Seller
-                </Link>
+                <button 
+                    onClick={chatWithSeller} 
+                    className='px-8 py-3 h-[50px] cursor-pointer hover:shadow-lg hover:shadow-blue-500/40 bg-blue-500 text-white flex items-center gap-2'
+                >
+                    <IoChatbubbleEllipses />
+                    <span>Chat Với Seller</span>
+                </button>
             </div>
 
 

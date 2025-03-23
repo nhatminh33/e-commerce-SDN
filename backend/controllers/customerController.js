@@ -20,7 +20,7 @@ const getProductById = async (req, res) => {
             return responseReturn(res, 400, { error: "Invalid product ID" });
         }
         const product = await productModel.findById(id)
-            .populate("sellerId", "name email image status -_id")
+            .populate("sellerId", "name email image status")
             .populate("categoryId", "name -_id");
         if (!product) {
             return responseReturn(res, 404, { error: "Product not found" });

@@ -17,6 +17,14 @@ const sellerCustomerMsgSchema = new Schema({
         type: String,
         required : true
     },
+    productId: {
+        type: String,
+        default: null
+    },
+    productName: {
+        type: String,
+        default: null
+    },
     status: {
         type: String,
         default : 'unseen'

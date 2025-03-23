@@ -5,20 +5,36 @@ import { BiLogOutCircle } from "react-icons/bi";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from '../store/Reducers/authReducer';
 import logo from '../assets/logo.png'
+import { get_unread_counts } from '../store/Reducers/chatReducer';
 
 const Sidebar = ({showSidebar, setShowSidebar}) => {
 
     const dispatch = useDispatch()
     const { role } = useSelector(state => state.auth)
+    const { totalUnreadMessages } = useSelector(state => state.chat)
     const navigate = useNavigate()
 
     const {pathname} = useLocation()
     const [allNav,setAllNav] = useState([])
+    
     useEffect(() => {
         const navs = getNav(role)
         setAllNav(navs)
     },[role])
-    // console.log(allNav)
+    
+    // Lấy số lượng tin nhắn chưa đọc khi component mount
+    useEffect(() => {
+        if (role === 'seller') {
+            dispatch(get_unread_counts());
+            
+            // Cập nhật số lượng tin nhắn chưa đọc mỗi phút
+            const interval = setInterval(() => {
+                dispatch(get_unread_counts());
+            }, 60000); // 60 giây
+            
+            return () => clearInterval(interval);
+        }
+    }, [dispatch, role]);
 
 
     return (
@@ -37,9 +53,16 @@ const Sidebar = ({showSidebar, setShowSidebar}) => {
             <ul>
                 {
                     allNav.map((n,i) =><li key={i}>
-                       <Link to={n.path} className={`${pathname === n.path ? 'bg-blue-600 shadow-indigo-500/50 text-white duration-500' : 'text-[#030811] font-bold duration-200 ' } px-[12px] py-[9px] rounded-sm flex justify-start items-center gap-[12px] hover:pl-4 transition-all w-full mb-1 `} >
+                       <Link to={n.path} className={`${pathname === n.path ? 'bg-blue-600 shadow-indigo-500/50 text-white duration-500' : 'text-[#030811] font-bold duration-200 ' } px-[12px] py-[9px] rounded-sm flex justify-start items-center gap-[12px] hover:pl-4 transition-all w-full mb-1 relative`} >
                         <span>{n.icon}</span>
                         <span>{n.title}</span>
+                        
+                        {/* Hiển thị badge cho menu Chat-Customer */}
+                        {n.title === 'Chat-Customer' && totalUnreadMessages > 0 && (
+                            <div className="absolute right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                                {totalUnreadMessages > 99 ? '99+' : totalUnreadMessages}
+                            </div>
+                        )}
                         </Link>
 
                     </li> )

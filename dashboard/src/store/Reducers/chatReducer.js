@@ -3,11 +3,10 @@ import api from "../../api/api";
 
 export const get_customers = createAsyncThunk(
     'chat/get_customers',
-    async(sellerId,{rejectWithValue, fulfillWithValue}) => {
-        
+    async(_, {rejectWithValue, fulfillWithValue}) => {
         try {
-            const {data} = await api.get(`/chat/seller/get-customers/${sellerId}` ,{withCredentials: true}) 
-            // console.log(data)
+            // Không cần sellerId nữa vì API sẽ lấy từ req.id
+            const {data} = await api.get('/chat/seller/get-customers', {withCredentials: true}) 
             return fulfillWithValue(data)
         } catch (error) { 
             return rejectWithValue(error.response.data)
@@ -16,14 +15,13 @@ export const get_customers = createAsyncThunk(
 )
 // End Method 
 
-
 export const get_customer_message = createAsyncThunk(
     'chat/get_customer_message',
-    async(customerId,{rejectWithValue, fulfillWithValue}) => {
-        
+    async(customerId, {rejectWithValue, fulfillWithValue}) => {
         try {
-            const {data} = await api.get(`/chat/seller/get-customer-message/${customerId}` ,{withCredentials: true}) 
-            // console.log(data)
+            console.log('customerId', customerId);
+            // Chỉ cần customerId, không cần sellerId
+            const {data} = await api.get(`/chat/seller/get-customer-messages/${customerId.customerId}`, {withCredentials: true}) 
             return fulfillWithValue(data)
         } catch (error) { 
             return rejectWithValue(error.response.data)
@@ -34,11 +32,16 @@ export const get_customer_message = createAsyncThunk(
 
 export const send_message = createAsyncThunk(
     'chat/send_message',
-    async(info,{rejectWithValue, fulfillWithValue}) => {
-        
+    async(info, {rejectWithValue, fulfillWithValue}) => {
         try {
-            const {data} = await api.post(`/chat/seller/send-message-to-customer`,info ,{withCredentials: true}) 
-            // console.log(data)
+            // Không cần gửi sellerId trong info nữa
+            const messageData = {
+                customerId: info.customerId,
+                message: info.message,
+                senderName: info.senderName // Tùy chọn
+            };
+            
+            const {data} = await api.post('/chat/seller/send-message-to-customer', messageData, {withCredentials: true}) 
             return fulfillWithValue(data)
         } catch (error) { 
             return rejectWithValue(error.response.data)
@@ -110,8 +113,33 @@ export const get_seller_message = createAsyncThunk(
 )
 // End Method 
 
- 
- 
+export const get_unread_counts = createAsyncThunk(
+    'chat/get_unread_counts',
+    async(_, {rejectWithValue, fulfillWithValue}) => {
+        try {
+            // Lấy số lượng tin nhắn chưa đọc từ API
+            const {data} = await api.get('/chat/seller/unread-counts', {withCredentials: true}) 
+            return fulfillWithValue(data)
+        } catch (error) { 
+            return rejectWithValue(error.response.data)
+        }
+    }
+)
+// End Method
+
+export const mark_as_read = createAsyncThunk(
+    'chat/mark_as_read',
+    async(customerId, {rejectWithValue, fulfillWithValue}) => {
+        try {
+            // Đánh dấu tin nhắn là đã đọc
+            const {data} = await api.patch(`/chat/seller/mark-as-read/${customerId}`, {}, {withCredentials: true}) 
+            return fulfillWithValue(data)
+        } catch (error) { 
+            return rejectWithValue(error.response.data)
+        }
+    }
+)
+
 export const chatReducer = createSlice({
     name: 'chat',
     initialState:{
@@ -127,7 +155,9 @@ export const chatReducer = createSlice({
         currentSeller: {},
         currentCustomer: {},
         sellers: [],
-        adminInfo: {}
+        adminInfo: {},
+        unreadCounts: {},
+        totalUnreadMessages: 0
     },
     reducers : {
 
@@ -191,6 +221,26 @@ export const chatReducer = createSlice({
         .addCase(get_seller_message.fulfilled, (state, { payload }) => { 
             state.seller_admin_message = payload.messages 
             state.adminInfo = payload.adminInfo
+        })
+        
+        // New reducer for unread counts
+        .addCase(get_unread_counts.fulfilled, (state, { payload }) => {
+            state.unreadCounts = payload.unreadCounts
+            state.totalUnreadMessages = Object.values(payload.unreadCounts).reduce((sum, count) => sum + count, 0)
+        })
+        
+        // New reducer for mark as read
+        .addCase(mark_as_read.fulfilled, (state, { payload }) => {
+            // Đã đánh dấu tin nhắn là đã đọc, cần cập nhật lại state
+            if (state.currentCustomer && state.currentCustomer.fdId) {
+                const customerId = state.currentCustomer.fdId;
+                // Xóa unread count cho customer này
+                if (state.unreadCounts[customerId]) {
+                    const oldCount = state.unreadCounts[customerId];
+                    state.totalUnreadMessages -= oldCount;
+                    delete state.unreadCounts[customerId];
+                }
+            }
         })
  
     }

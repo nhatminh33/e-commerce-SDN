@@ -2,11 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { FaList } from 'react-icons/fa6';
 import { IoMdClose } from "react-icons/io";
 import { useDispatch, useSelector } from 'react-redux';
-import { get_customer_message, get_customers,messageClear,send_message,updateMessage } from '../../store/Reducers/chatReducer';
+import { get_customer_message, get_customers, messageClear, send_message, updateMessage, get_unread_counts, mark_as_read } from '../../store/Reducers/chatReducer';
 import { Link, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import io from 'socket.io-client';
+import { BsTag } from "react-icons/bs";
 
-import { socket } from '../../utils/utils';
+const socket = io('http://localhost:5000');
 
 const SellerToCustomer = () => {
 
@@ -15,59 +17,179 @@ const SellerToCustomer = () => {
     const [show, setShow] = useState(false) 
     const sellerId = 65
     const {userInfo } = useSelector(state => state.auth)
-    const {customers,messages,currentCustomer,successMessage } = useSelector(state => state.chat)
+    const {customers, messages, currentCustomer, successMessage, unreadCounts } = useSelector(state => state.chat)
     const [text,setText] = useState('')
     const [receverMessage,setReceverMessage] = useState('')
+    const [activeCustomers, setActiveCustomers] = useState([]);
+    const [productMessages, setProductMessages] = useState([]);
 
     const { customerId } =  useParams()
 
     const dispatch = useDispatch()
 
     useEffect(() => {
-        dispatch(get_customers(userInfo._id))
-    },[])
+        // Register seller when component mounts
+        const sellerId = userInfo.id;
+        const sellerInfo = {
+            name: userInfo.name,
+            shopName: userInfo.shopInfo?.shopName,
+            image: userInfo.image || 'http://localhost:3000/images/user.png'
+        };
+        
+        socket.emit('add_seller', sellerId, sellerInfo);
+        
+        // Get customers list and unread message counts
+        dispatch(get_customers());
+        dispatch(get_unread_counts());
+        
+        // Handle unmount
+        return () => {
+            socket.disconnect();
+        };
+    }, [userInfo.id]);
+
+    // Debug socket connection
+    useEffect(() => {
+        // Connection event
+        socket.on('connect', () => {
+            // Re-register seller when connection is successful
+            if (userInfo?.id) {
+                socket.emit('add_seller', userInfo.id, {
+                    name: userInfo.name,
+                    shopName: userInfo.shopInfo?.shopName,
+                    image: userInfo.image || 'http://localhost:3000/images/user.png'
+                });
+            }
+        });
+        
+        // Reconnect event
+        socket.on('reconnect', (attemptNumber) => {
+            // Re-register seller on reconnection
+            if (userInfo?.id) {
+                socket.emit('add_seller', userInfo.id, {
+                    name: userInfo.name,
+                    shopName: userInfo.shopInfo?.shopName,
+                    image: userInfo.image || 'http://localhost:3000/images/user.png'
+                });
+            }
+        });
+        
+        return () => {
+            socket.off('connect');
+            socket.off('reconnect');
+        };
+    }, [userInfo]);
+
+    // Update unread message counts every minute
+    useEffect(() => {
+        const interval = setInterval(() => {
+            dispatch(get_unread_counts());
+        }, 60000); // 60 seconds
+        
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         if (customerId) {
-            dispatch(get_customer_message(customerId))
+            dispatch(get_customer_message({ customerId: customerId }));
+            // Mark messages as read when opening conversation
+            dispatch(mark_as_read(customerId));
         }
-    },[customerId])
+    }, [customerId])
 
     const send = (e) => {
         e.preventDefault() 
-            dispatch(send_message({
-                senderId: userInfo._id, 
-                receverId: customerId,
-                text,
-                name: userInfo?.shopInfo?.shopName 
-            }))
-            setText('') 
+        if(!text.trim()) {
+            return toast.error('Please enter a message');
+        }
+        if(!customerId) {
+            return toast.error('Please select a customer to send a message');
+        }
+        
+        // Save message content before sending
+        const messageContent = text;
+        
+        dispatch(send_message({
+            customerId: customerId,
+            message: messageContent,
+            senderName: userInfo.name
+        }))
+        
+        // Save message for socket use
+        window.lastSentMessage = messageContent;
+        
+        setText('') 
     }
  
     useEffect(() => {
+        // Listen for active customers
+        socket.on('activeCustomers', (customers) => {
+            setActiveCustomers(customers);
+        });
+
+        // Listen for product messages from customers
+        socket.on('receved_product_message', (message) => {
+            setReceverMessage(message);
+            // Add new product message to list
+            if (message.productId && message.productName) {
+                setProductMessages(prev => [...prev, {
+                    ...message,
+                    time: new Date().toLocaleTimeString()
+                }]);
+
+                toast.success(`${message.senderName || 'Customer'} sent a message about product ${message.productName}`);
+                
+                // Update unread message counts
+                dispatch(get_unread_counts());
+            }
+        });
+        
+        // Listen for regular messages from customers
+        socket.on('receved_customer_message', (message) => {
+            setReceverMessage(message);
+            
+            // Show notification and update unread counts
+            toast.success(`${message.senderName || 'Customer'} sent a new message`);
+            dispatch(get_unread_counts());
+        });
+
+        return () => {
+            socket.off('activeCustomers');
+            socket.off('receved_product_message');
+            socket.off('receved_customer_message');
+        };
+    }, [])
+
+    useEffect(() => {
         if (successMessage) {
-            socket.emit('send_seller_message',messages[messages.length - 1])
+            socket.emit('send_message_seller_to_customer', {
+                senderId: userInfo.id, 
+                receverId: customerId,
+                message: window.lastSentMessage || "Empty message",
+                senderName: userInfo.name,
+                // Add timestamp for debugging
+                timestamp: new Date().toISOString()
+            });
+            
+            // Clear saved message after sending
+            window.lastSentMessage = null;
             dispatch(messageClear())
         }
     },[successMessage])
 
     useEffect(() => {
-        socket.on('customer_message', msg => {
-            setReceverMessage(msg)
-        })
-         
-    },[])
-
-    useEffect(() => {
         if (receverMessage) {
-            if (customerId === receverMessage.senderId && userInfo._id === receverMessage.receverId) {
+            if (customerId === receverMessage.senderId && userInfo.id === receverMessage.receverId) {
                 dispatch(updateMessage(receverMessage))
+                // Mark messages as read if viewing conversation with sender
+                dispatch(mark_as_read(customerId));
             } else {
-                toast.success(receverMessage.senderName + " " + "Send A message")
+                toast.success(`${receverMessage.senderName || 'Customer'} sent a new message`)
+                // Update unread message counts
+                dispatch(get_unread_counts());
                 dispatch(messageClear())
             }
         }
-
     },[receverMessage])
 
     useEffect(() => {
@@ -89,18 +211,27 @@ const SellerToCustomer = () => {
 
 
         {
-            customers.map((c,i) => <Link key={i} to={`/seller/dashboard/chat-customer/${c.fdId}`} className={`h-[60px] flex justify-start gap-2 items-center text-white px-2 py-2 rounded-md cursor-pointer bg-[#8288ed] `}>
+            customers.map((c,i) => <Link key={i} to={`/seller/dashboard/chat-customer/${c.fdId}`} className={`h-[60px] flex justify-start gap-2 items-center text-white px-2 py-2 rounded-md cursor-pointer bg-[#8288ed] relative ${customerId === c.fdId ? 'bg-[#7577d1]' : ''} `}>
             <div className='relative'>
-             <img className='w-[38px] h-[38px] border-white border-2 max-w-[38px] p-[2px] rounded-full' src="http://localhost:3001/images/admin.jpg" alt="" />
-             <div className='w-[10px] h-[10px] bg-green-500 rounded-full absolute right-0 bottom-0'></div>
+             <img className='w-[38px] h-[38px] border-white border-2 max-w-[38px] p-[2px] rounded-full' src={c.image} alt="" />
+             {activeCustomers.find(ac => ac.customerId === c.fdId) && (
+                <div className='w-[10px] h-[10px] bg-green-500 rounded-full absolute right-0 bottom-0'></div>
+             )}
             </div>
     
             <div className='flex justify-center items-start flex-col w-full'>
                 <div className='flex justify-between items-center w-full'>
                     <h2 className='text-base font-semibold'>{c.name}</h2>
-    
                 </div> 
-            </div> 
+            </div>
+            
+            {/* Unread messages badge */}
+            {unreadCounts && unreadCounts[c.fdId] && unreadCounts[c.fdId] > 0 && (
+                <div className='absolute right-2 top-1/2 transform -translate-y-1/2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold'>
+                    {unreadCounts[c.fdId] > 99 ? '99+' : unreadCounts[c.fdId]}
+                </div>
+            )}
+            
            </Link>  )
         }
        
@@ -142,10 +273,16 @@ const SellerToCustomer = () => {
                     <div key={i} ref={scrollRef} className='w-full flex justify-start items-center'>
                     <div className='flex justify-start items-start gap-2 md:px-3 py-2 max-w-full lg:max-w-[85%]'>
                         <div>
-                            <img className='w-[38px] h-[38px] border-2 border-white rounded-full max-w-[38px] p-[3px]' src="http://localhost:3001/images/demo.jpg" alt="" />
+                            <img className='w-[38px] h-[38px] border-2 border-white rounded-full max-w-[38px] p-[3px]' src={currentCustomer.image} alt="" />
                         </div>
                         <div className='flex justify-center items-start flex-col w-full bg-blue-500 shadow-lg shadow-blue-500/50 text-white py-1 px-2 rounded-sm'>
                         <span>{m.message} </span>
+                        {m.productId && m.productName && (
+                            <div className="flex items-center gap-1 text-xs text-slate-300 mt-1">
+                                <BsTag />
+                                <span>Product: {m.productName}</span>
+                            </div>
+                        )}
                         </div> 
                     </div> 
                 </div>
