@@ -190,8 +190,12 @@ const Details = () => {
         <div>
             {showChat && product?.sellerId && (
                 <ProductChat 
-                    sellerId={product.sellerId?._id || product.sellerId}
-                    sellerInfo={product.sellerId}
+                    sellerId={typeof product.sellerId === 'object' ? product.sellerId._id : product.sellerId}
+                    sellerInfo={{
+                        name: typeof product.sellerId === 'object' ? product.sellerId.name : product.shopName,
+                        shopName: typeof product.sellerId === 'object' ? product.sellerId.shopName : product.shopName,
+                        avatar: typeof product.sellerId === 'object' ? product.sellerId.image : null
+                    }}
                     productId={_id}
                     productName={product.name}
                     onClose={() => setShowChat(false)}
@@ -343,9 +347,9 @@ const Details = () => {
                 {/* {
                     product.stock ? <button onClick={buynow} className='px-8 py-3 h-[50px] cursor-pointer hover:shadow-lg hover:shadow-green-500/40 bg-[#247462] text-white'>Buy Now</button> : ''
                 } */}
-                <Link to={`/dashboard/chat/${product.sellerId}`} className='px-8 py-3 h-[50px] cursor-pointer hover:shadow-lg hover:shadow-red-500/40 bg-red-500 text-white'>
+                <button onClick={chatWithSeller} className='px-8 py-3 h-[50px] cursor-pointer hover:shadow-lg hover:shadow-red-500/40 bg-red-500 text-white'>
                     Chat Seller
-                </Link>
+                </button>
             </div>
 
 

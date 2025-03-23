@@ -8,142 +8,219 @@ import io from 'socket.io-client';
 import toast from 'react-hot-toast';
 import api from "../api/api";
 
-const socket = io('http://localhost:5000');
+// Initialize socket connection
+const socket = io('http://localhost:5000', {
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
+    timeout: 20000
+});
 
 const ProductChat = ({ sellerId, sellerInfo, productId, productName, onClose }) => {
     const dispatch = useDispatch();
     const { userInfo } = useSelector(state => state.auth);
-    const { fb_messages, successMessage } = useSelector(state => state.chat);
+    const { fb_messages, successMessage, error } = useSelector(state => state.chat);
     const [text, setText] = useState('');
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [sellerOnline, setSellerOnline] = useState(false);
     const scrollRef = useRef();
+    
+    // Debug info
+    console.log("ProductChat - Props:", { 
+        sellerId, 
+        sellerInfo, 
+        productId, 
+        productName,
+        userInfo: userInfo ? { id: userInfo.id, name: userInfo.name } : null
+    });
+    
+    // Normalize sellerId (object or string)
+    const getSellerIdValue = () => {
+        if (typeof sellerId === 'object') {
+            return sellerId?._id || sellerId?.id || '';
+        }
+        return sellerId || '';
+    };
+    
+    const sellerIdValue = getSellerIdValue();
+    
+    // Register with socket on mount
+    useEffect(() => {
+        if (userInfo?.id) {
+            console.log(`Registering user ${userInfo.id} with socket`);
+            socket.emit('add_customer', userInfo.id, {
+                name: userInfo.name || 'Customer',
+                image: userInfo.image || 'http://localhost:3000/images/user.png'
+            });
+        }
+        
+        return () => {
+            console.log("ProductChat component unmounting");
+        };
+    }, []);
 
-    // Lấy tin nhắn cũ giữa user và seller
+    // Fetch previous messages
     useEffect(() => {
         const getMessages = async () => {
             try {
-                if (userInfo && sellerId) {
-                    const { data } = await api.get(`/chat/get-messages/${userInfo.id}/${sellerId}`);
-                    if (data && data.messages) {
-                        setMessages(data.messages);
-                    }
+                if (!userInfo?.id || !sellerIdValue) {
+                    console.error("Missing user or seller ID", { userId: userInfo?.id, sellerId: sellerIdValue });
+                    setLoading(false);
+                    return;
+                }
+                
+                console.log(`Fetching messages between user ${userInfo.id} and seller ${sellerIdValue}`);
+                const { data } = await api.get(`/chat/get-messages/${userInfo.id}/${sellerIdValue}`);
+                
+                if (data && data.messages) {
+                    console.log(`Got ${data.messages.length} messages`);
+                    setMessages(data.messages);
+                } else {
+                    console.log("No messages found");
+                    setMessages([]);
                 }
             } catch (error) {
-                console.error("Lỗi khi lấy tin nhắn:", error);
+                console.error("Error fetching messages:", error.response?.data || error.message);
+                toast.error("Failed to load messages");
             } finally {
                 setLoading(false);
             }
         };
         
         getMessages();
-    }, [userInfo, sellerId]);
+    }, [userInfo, sellerIdValue]);
 
-    // Kết nối socket
+    // Socket listeners for messages and online status
     useEffect(() => {
-        if (userInfo && userInfo.id) {
-            socket.emit('add_customer', userInfo.id, {
-                name: userInfo.name,
-                image: userInfo.image || 'http://localhost:3000/images/user.png'
-            });
-        }
-
-        return () => {
-            // Ngắt kết nối khi component unmount
-            socket.off('receved_seller_message');
-            socket.off('activeSellers');
-        };
-    }, [userInfo]);
-
-    // Lắng nghe tin nhắn và trạng thái online từ socket
-    useEffect(() => {
+        console.log(`Setting up socket listeners for seller: ${sellerIdValue}`);
+        
+        // Listen for messages from seller
         socket.on('receved_seller_message', (message) => {
-            console.log('Nhận tin nhắn từ seller qua socket:', message);
+            console.log('Message from seller received:', message);
             
-            // Kiểm tra đầy đủ dữ liệu message
-            if (!message) {
-                console.error('Nhận được tin nhắn rỗng');
-                return;
-            }
+            if (!message) return;
             
-            console.log('Đang kiểm tra tin nhắn. SellerId:', sellerId, 'UserId:', userInfo?.id);
+            // Debug message format
+            console.log('Comparing IDs:');
+            console.log(`- Message sender: ${message.senderId} (${typeof message.senderId})`);
+            console.log(`- Expected seller: ${sellerIdValue} (${typeof sellerIdValue})`);
+            console.log(`- Message receiver: ${message.receverId} (${typeof message.receverId})`);
+            console.log(`- Current user: ${userInfo?.id} (${typeof userInfo?.id})`);
             
-            if (message.senderId === sellerId && message.receverId === userInfo?.id) {
-                console.log('Tin nhắn hợp lệ, thêm vào danh sách');
-                setMessages(prev => [...prev, message]);
+            // Use string comparison to avoid type issues
+            if (String(message.senderId) === String(sellerIdValue) && 
+                String(message.receverId) === String(userInfo?.id)) {
+                console.log('✅ Message matches current conversation');
                 
-                // Hiển thị thông báo
-                toast.success(`Tin nhắn mới từ ${message.senderName || 'Người bán'}`);
+                // Add message to state
+                setMessages(prev => [...prev, {
+                    ...message,
+                    senderId: message.senderId,
+                    receverId: message.receverId,
+                    message: message.message || ''
+                }]);
+                
+                toast.success(`New message from ${message.senderName || 'Seller'}`);
             } else {
-                console.log('Tin nhắn không khớp với cuộc trò chuyện hiện tại');
+                console.log('❌ Message does not match current conversation');
             }
         });
 
+        // Check seller online status
         socket.on('activeSellers', (sellers) => {
-            const isSellerOnline = sellers.some(s => s.sellerId === sellerId);
-            setSellerOnline(isSellerOnline);
+            const isOnline = sellers.some(s => String(s.sellerId) === String(sellerIdValue));
+            console.log(`Seller ${sellerIdValue} online status: ${isOnline}`);
+            setSellerOnline(isOnline);
         });
 
         return () => {
             socket.off('receved_seller_message');
             socket.off('activeSellers');
         };
-    }, [sellerId, userInfo]);
+    }, [sellerIdValue, userInfo]);
 
-    // Tự động cuộn xuống tin nhắn mới nhất
+    // Scroll to latest message
     useEffect(() => {
         scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // Xử lý khi thêm tin nhắn thành công
+    // Handle successful message sending
     useEffect(() => {
         if (successMessage) {
-            const lastMessage = fb_messages[fb_messages.length - 1];
-            if (lastMessage) {
-                setMessages(prev => [...prev, lastMessage]);
-                
-                // Gửi tin nhắn qua socket
-                socket.emit('send_product_message_customer_to_seller', {
-                    senderId: userInfo.id,
-                    receverId: sellerId,
-                    message: lastMessage.message,
-                    productId: productId,
-                    productName: productName,
-                    senderName: userInfo.name
-                });
-            }
+            console.log("Message sent successfully");
             dispatch(messageClear());
         }
-    }, [successMessage, fb_messages]);
+    }, [successMessage, dispatch]);
 
+    // Handle errors from message sending
+    useEffect(() => {
+        if (error) {
+            console.error("Error sending message:", error);
+            toast.error(typeof error === 'string' ? error : "Lỗi khi gửi tin nhắn");
+            dispatch(messageClear());
+        }
+    }, [error, dispatch]);
+
+    // Send message handler
     const handleSendMessage = () => {
         if (!text.trim()) return;
         
-        // Đảm bảo sellerId là chuỗi, không phải đối tượng
-        const sellerIdValue = typeof sellerId === 'object' ? 
-            (sellerId._id || '') : 
-            sellerId;
+        try {
+            if (!sellerIdValue) {
+                toast.error("Cannot determine seller ID");
+                return;
+            }
             
-        if (!sellerIdValue) {
-            toast.error("Không thể xác định người bán");
-            return;
+            if (!userInfo?.id) {
+                toast.error("Please login to send messages");
+                return;
+            }
+            
+            // Add message to local state first for immediate feedback
+            const tempMessage = {
+                _id: `temp-${Date.now()}`,
+                senderId: userInfo.id,
+                receverId: sellerIdValue,
+                message: text,
+                senderName: userInfo.name,
+                productId,
+                productName,
+                createdAt: new Date().toISOString()
+            };
+            
+            setMessages(prev => [...prev, tempMessage]);
+            
+            // Send to server
+            const messageData = {
+                userId: userInfo.id,
+                text,
+                sellerId: sellerIdValue,
+                name: userInfo.name || "Customer",
+                productId,
+                productName
+            };
+            
+            console.log("Sending message:", messageData);
+            
+            // Send via API
+            dispatch(send_message(messageData));
+            
+            // Send directly via socket for real-time
+            socket.emit('send_product_message_customer_to_seller', {
+                senderId: userInfo.id,
+                receverId: sellerIdValue,
+                message: text,
+                productId,
+                productName,
+                senderName: userInfo.name || "Customer"
+            });
+            
+            setText('');
+        } catch (err) {
+            console.error("Error in handleSendMessage:", err);
+            toast.error("Có lỗi xảy ra khi gửi tin nhắn");
         }
-        
-        const messageData = {
-            userId: userInfo.id,
-            text,
-            sellerId: sellerIdValue,
-            name: userInfo.name || "Customer", // Đảm bảo có senderName
-            productId,
-            productName
-        };
-        
-        console.log("Sending message data:", messageData);
-        
-        dispatch(send_message(messageData));
-        
-        setText('');
     };
 
     const handleKeyPress = (e) => {
@@ -154,6 +231,7 @@ const ProductChat = ({ sellerId, sellerInfo, productId, productName, onClose }) 
 
     return (
         <div className="fixed bottom-0 right-5 z-50 w-[350px] bg-white rounded-t-lg shadow-lg border border-gray-300">
+            {/* Header with seller info */}
             <div className="flex justify-between items-center bg-blue-600 text-white p-3 rounded-t-lg">
                 <div className="flex items-center gap-2">
                     <div className="w-[30px] h-[30px] rounded-full relative">
@@ -161,14 +239,13 @@ const ProductChat = ({ sellerId, sellerInfo, productId, productName, onClose }) 
                             <div className="w-[10px] h-[10px] rounded-full bg-green-500 absolute right-0 bottom-0"></div>
                         )}
                         <img 
-                            src={sellerInfo?.avatar || 'http://localhost:3000/images/user.png'} 
+                            src={sellerInfo?.avatar || sellerInfo?.image || 'http://localhost:3000/images/seller.png'} 
                             alt="Seller" 
                             className="w-full h-full rounded-full"
                         />
                     </div>
                     <div>
-                        <div className="font-semibold">{sellerInfo?.shopName || "Người bán"}</div>
-                        <div className="text-xs">{sellerOnline ? 'Đang hoạt động' : 'Không hoạt động'}</div>
+                        <div className="font-semibold">{sellerInfo?.shopName || sellerInfo?.name || "Seller"}</div>
                     </div>
                 </div>
                 <button className="text-white" onClick={onClose}>
@@ -176,56 +253,68 @@ const ProductChat = ({ sellerId, sellerInfo, productId, productName, onClose }) 
                 </button>
             </div>
 
-            <div className="h-[300px] overflow-y-auto p-3 bg-slate-50">
+            {/* Messages container */}
+            <div className="h-[300px] overflow-y-auto p-3 bg-slate-50" id="messages-container">
                 {loading ? (
                     <div className="flex justify-center items-center h-full">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-700"></div>
                     </div>
                 ) : messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                        <p>Bắt đầu cuộc trò chuyện với người bán</p>
-                        <p className="text-sm">Về sản phẩm: {productName}</p>
+                        <p>Start a conversation with the seller</p>
+                        <p className="text-sm">About product: {productName}</p>
                     </div>
                 ) : (
-                    messages.map((msg, i) => (
-                        <div 
-                            ref={i === messages.length - 1 ? scrollRef : null}
-                            key={i} 
-                            className={`flex gap-2 my-2 ${msg.senderId === userInfo.id ? 'justify-end' : 'justify-start'}`}
-                        >
-                            {msg.senderId !== userInfo.id && (
-                                <img 
-                                    src={sellerInfo?.avatar || 'http://localhost:3000/images/user.png'} 
-                                    alt="User" 
-                                    className="w-[30px] h-[30px] rounded-full"
-                                />
-                            )}
+                    messages.map((msg, i) => {
+                        // Compare as strings to avoid type issues
+                        const isCurrentUserSender = String(msg.senderId) === String(userInfo?.id);
+                        
+                        return (
                             <div 
-                                className={`p-2 rounded-lg max-w-[70%] break-words ${
-                                    msg.senderId === userInfo.id 
-                                        ? 'bg-blue-500 text-white' 
-                                        : 'bg-gray-200 text-gray-800'
-                                }`}
+                                ref={i === messages.length - 1 ? scrollRef : null}
+                                key={i} 
+                                className={`flex gap-2 my-2 ${isCurrentUserSender ? 'justify-end' : 'justify-start'}`}
                             >
-                                {msg.message}
+                                {!isCurrentUserSender && (
+                                    <img 
+                                        src={sellerInfo?.avatar || sellerInfo?.image || 'http://localhost:3000/images/seller.png'} 
+                                        alt="Seller" 
+                                        className="w-[30px] h-[30px] rounded-full"
+                                    />
+                                )}
+                                <div 
+                                    className={`p-2 rounded-lg max-w-[70%] break-words ${
+                                        isCurrentUserSender 
+                                            ? 'bg-blue-500 text-white' 
+                                            : 'bg-gray-200 text-gray-800'
+                                    }`}
+                                >
+                                    {msg.message}
+                                    {msg.productId && (
+                                        <div className="text-xs mt-1 italic">
+                                            Product: {msg.productName || 'Unknown'}
+                                        </div>
+                                    )}
+                                </div>
+                                {isCurrentUserSender && (
+                                    <img 
+                                        src={userInfo?.image || 'http://localhost:3000/images/user.png'} 
+                                        alt="You" 
+                                        className="w-[30px] h-[30px] rounded-full"
+                                    />
+                                )}
                             </div>
-                            {msg.senderId === userInfo.id && (
-                                <img 
-                                    src={userInfo.image || 'http://localhost:3000/images/user.png'} 
-                                    alt="User" 
-                                    className="w-[30px] h-[30px] rounded-full"
-                                />
-                            )}
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
 
+            {/* Input box */}
             <div className="p-3 border-t flex items-center gap-2">
                 <input 
                     type="text" 
                     className="flex-1 border rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Nhập tin nhắn..." 
+                    placeholder="Type a message..." 
                     value={text} 
                     onChange={(e) => setText(e.target.value)}
                     onKeyPress={handleKeyPress}
@@ -233,6 +322,7 @@ const ProductChat = ({ sellerId, sellerInfo, productId, productName, onClose }) 
                 <button 
                     onClick={handleSendMessage}
                     className="bg-blue-500 text-white rounded-full p-2 hover:bg-blue-600"
+                    aria-label="Send message"
                 >
                     <IoSend size={20} />
                 </button>

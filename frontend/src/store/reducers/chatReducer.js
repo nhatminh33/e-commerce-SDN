@@ -154,33 +154,45 @@ export const mark_seller_messages_as_read = createAsyncThunk(
 export const chatReducer = createSlice({
     name: 'chat',
     initialState: {
-        successMessage: '',
-        errorMessage: '',
-        customers: [],
-        sellers: [],
-        currentCustomer: {},
-        currentSeller: {},
-        loader: false,
+        friends: [],
+        my_friends: [],
+        fb_messages: [],
         messages: [],
-        messageText: '',
+        currentSeller: null,
+        currentMessages: [],
+        sellers: [],
+        seller_messages: [],
+        seller_message_counts: 0,
+        successMessage: '',
+        error: '',
+        myFriendMessages: [],
+        currentFriend: {},
         currentFriends: [],
-        friendGet: false,
-        activeCustomers: [],
-        activeSellers: [],
-        lastmessageSeenDateById:[],
-        unreadCounts: {},
-        sellerUnreadCounts: {}
+        typingMessage: '',
+        activeUsers: [],
+        loadingMessageSend: false,
+        messageSuccess: false,
+        loading: false,
+        sellerUnreadCounts: {},
+        isOpenMessageBox: false,
     },
-    reducers : {
-
-        messageClear : (state,_) => {
-            state.errorMessage = ""
-            state.successMessage = ""
+    reducers: {
+        messageClear: (state) => {
+            state.successMessage = '';
+            state.error = '';
+            state.messageSuccess = false;
         },
-        updateMessage: (state, {payload}) => {
-            state.messages = [...state.messages, payload]
-        }
-  
+        updateMessage: (state, action) => {
+            const message = action.payload;
+            if (state.fb_messages && Array.isArray(state.fb_messages)) {
+                state.fb_messages = [...state.fb_messages, message];
+            } else {
+                state.fb_messages = [message];
+            }
+        },
+        setIsOpenMessageBox: (state, action) => {
+            state.isOpenMessageBox = action.payload;
+        },
     },
     extraReducers: (builder) => {
         builder 
@@ -190,16 +202,27 @@ export const chatReducer = createSlice({
             state.currentFriends = payload.MyFriends;
         })
         .addCase(send_message.fulfilled, (state, { payload }) => { 
-            let tempFriends = state.currentFriends
-            let index = tempFriends.findIndex(f => f.fdId === payload.message.receverId)
-            while (index > 0) {
-                let temp = tempFriends[index]
-                tempFriends[index] = tempFriends[index - 1]
-                tempFriends[index - 1] = temp
-                index--
-            }            
-            state.currentFriends = tempFriends;
-            state.messages = [...state.messages, payload.message];
+            if (state.currentFriends && Array.isArray(state.currentFriends)) {
+                let tempFriends = state.currentFriends;
+                if (payload.message && payload.message.receverId) {
+                    let index = tempFriends.findIndex(f => f.fdId === payload.message.receverId);
+                    while (index > 0) {
+                        let temp = tempFriends[index];
+                        tempFriends[index] = tempFriends[index - 1];
+                        tempFriends[index - 1] = temp;
+                        index--;
+                    }
+                    state.currentFriends = tempFriends;
+                }
+            }
+
+            if (payload.message) {
+                if (!state.messages) {
+                    state.messages = [];
+                }
+                state.messages = [...state.messages, payload.message];
+            }
+            
             state.successMessage = 'Message Send Success';
         })
 
@@ -263,5 +286,5 @@ export const chatReducer = createSlice({
         })
     }
 })
-export const {messageClear,updateMessage} = chatReducer.actions
+export const {messageClear,updateMessage,setIsOpenMessageBox} = chatReducer.actions
 export default chatReducer.reducer
