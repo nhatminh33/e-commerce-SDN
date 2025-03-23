@@ -21,10 +21,10 @@ export const place_order = createAsyncThunk(
 
 export const get_orders = createAsyncThunk(
     'order/get_orders',
-    async ({ customerId, status }, { rejectWithValue, fulfillWithValue }) => {
+    async ({ customerId }, { rejectWithValue, fulfillWithValue }) => {
         try {
-            const { data } = await api.get(`/home/coustomer/get-orders/${customerId}/${status}`)
-            // console.log(data)
+            const { data } = await api.get(`/customer/orders/${customerId}`)
+            console.log(data)
             return fulfillWithValue(data)
         } catch (error) {
             return rejectWithValue(error.response.data)
