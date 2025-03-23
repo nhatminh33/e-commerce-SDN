@@ -19,11 +19,11 @@ export const add_to_card = createAsyncThunk(
 
 export const get_card_products = createAsyncThunk(
     'card/get_card_products',
-    async(userId, { rejectWithValue,fulfillWithValue }) => {
+    async (userId, { rejectWithValue, fulfillWithValue }) => {
         try {
-            const {data} = await api.get(`/home/product/get-card-product/${userId}`) 
+            const { data } = await api.get(`/customer/cart/${userId}`)
             // console.log(data)
-            return fulfillWithValue(data)
+            return fulfillWithValue(data);
         } catch (error) {
             return rejectWithValue(error.response.data)
         }
@@ -33,11 +33,14 @@ export const get_card_products = createAsyncThunk(
 
 export const delete_card_product = createAsyncThunk(
     'card/delete_card_product',
-    async(card_id, { rejectWithValue,fulfillWithValue }) => {
+    async ({ userId, productIds }, { rejectWithValue, fulfillWithValue }) => {
         try {
-            const {data} = await api.delete(`/home/product/delete-card-product/${card_id}`) 
-            // console.log(data)
-            return fulfillWithValue(data)
+            const { data } = await api.put(`/customer/remove-many-item-from-cart`, {
+                userId,
+                productIds // Gửi đúng định dạng
+            });
+            console.log("Response:", data);
+            return fulfillWithValue(data);
         } catch (error) {
             return rejectWithValue(error.response.data)
         }
@@ -74,6 +77,21 @@ export const quantity_dec = createAsyncThunk(
 )
 // End Method 
 
+export const update_cart_quantity = createAsyncThunk(
+    'card/update_cart_quantity',
+    async ({ userId, productId, quantity }, { rejectWithValue, fulfillWithValue }) => {
+        try {
+            const { data } = await api.put('/customer/update-cart-item-quantity', {
+                userId,
+                productId,
+                quantity
+            });
+            return fulfillWithValue(data);
+        } catch (error) {
+            return rejectWithValue(error.response.data);
+        }
+    }
+);
 
 export const add_to_wishlist = createAsyncThunk(
     'wishlist/add_to_wishlist',
@@ -155,18 +173,25 @@ export const cardReducer = createSlice({
             state.card_product_count = state.card_product_count + 1
         })
 
-        .addCase(get_card_products.fulfilled, (state, { payload }) => { 
-            state.card_products = payload.card_products; 
-            state.price = payload.price
-            state.card_product_count = payload.card_product_count
-            state.shipping_fee = payload.shipping_fee
-            state.outofstock_products = payload.outOfStockProduct
-            state.buy_product_item = payload.buy_product_item 
+        .addCase(get_card_products.fulfilled, (state, { payload }) => {
+            state.loading = false;
+            state.card_products = Array.isArray(payload.cart)
+                ? payload.cart.map(cartItem => cartItem.item)
+                : [];
+            state.price = state.card_products.reduce((total, item) => total + item.total, 0);
+            state.card_product_count = state.card_products.length;
         })
 
-        .addCase(delete_card_product.fulfilled, (state, { payload }) => { 
-            state.successMessage = payload.message;  
+        .addCase(delete_card_product.fulfilled, (state, action) => {
+            state.successMessage = action.payload.message;
+            state.card_products = state.card_products.filter(
+                (item) => !action.meta.arg.productIds.includes(item.productId)
+            );
         })
+        .addCase(update_cart_quantity.fulfilled, (state, { payload }) => {
+            state.successMessage = payload.message;
+        })
+        
         .addCase(quantity_inc.fulfilled, (state, { payload }) => { 
             state.successMessage = payload.message;  
         })
