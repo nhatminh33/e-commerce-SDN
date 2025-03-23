@@ -10,6 +10,7 @@ const server = http.createServer(app)
 const { Server } = require('socket.io')
 const notificationSocket = require('./socket/notificationSocket')
 const chatSocket = require('./socket/chatSocket')
+const { swaggerSpec, swaggerUi } = require('./utiles/swagger')
 
 app.use(cors({
     origin : ['http://localhost:3000','http://localhost:3001'],
@@ -21,8 +22,11 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use('/api', rootRouter)
 
+// Setup Swagger
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
+
+app.use('/api', rootRouter)
 app.use('/api', require('./routes/authRoutes'))
 app.use('/api/address', require('./routes/addressRoutes'))
 app.use('/api', require('./routes/dashboard/sellerRouters'))
