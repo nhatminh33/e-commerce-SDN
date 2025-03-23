@@ -150,9 +150,9 @@ module.exports.returnVnpay = async (req, res) => {
         let productList = orderProduct.products.map(p => `${p.productId?.name || 'Unknown'} (x${p.quantity})`).join(', ');
 
         if (vnp_Params['vnp_ResponseCode'] === '00') {
-            await orderModel.updateOne({ _id: orderId }, { 
-                payment_status: "paid", 
-                delivery_status: "shipping" 
+            await orderModel.updateOne({ _id: orderId }, {
+                payment_status: "paid",
+                delivery_status: "shipping"
             });
             await sendMail({
                 email: order.shippingInfo.email,
@@ -166,13 +166,15 @@ module.exports.returnVnpay = async (req, res) => {
                        <p style="font-weight: bold; color: orange">Đơn hàng sẽ được giao tới tay quý khách sau 3 - 4 ngày</p>
                     `
             })
-            return res.json({ success: true, message: "Thanh toán thành công" });
+            console.log(process.env.VNPAY_RETURN_URL);
+
+            res.redirect(`http://localhost:${3000 || 3001}/payment-success`)
         } else if (vnp_Params['vnp_ResponseCode'] === '24') {
             await orderModel.updateOne({ _id: orderId }, { payment_status: "failed" });
-            return res.json({ success: true, message: "Thanh toán không thành công do hủy" });
+            res.redirect(`http://localhost:${3000 || 3001}/payment-failed`)
         } else {
             await orderModel.updateOne({ _id: orderId }, { payment_status: "failed" });
-            return res.json({ success: false, message: "Thanh toán thất bại!" });
+            res.redirect(`http://localhost:${3000 || 3001}/payment-failed`)
         }
     } else {
         await orderModel.updateOne({ _id: orderId }, { payment_status: "failed" });

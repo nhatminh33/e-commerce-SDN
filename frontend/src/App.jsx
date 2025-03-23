@@ -27,7 +27,7 @@ import ConfirmOrder from './pages/ConfirmOrder';
 import VerifyEmail from './pages/VerifyEmail';
 import ResendVerification from './pages/ResendVerification';
 import ResetPassword from './pages/ResetPassword';
-
+import { PaymentFailed, PaymentStatusHandler, PaymentSuccess } from './pages/ReturnPayment';
 function App() {
   const dispatch = useDispatch()
   useEffect(() => {
@@ -52,6 +52,9 @@ function App() {
       <Route path='/products/search?' element={<SearchProducts/>} />
       <Route path='/product/details/:_id' element={<Details/>} /> 
       <Route path='/order/confirm?' element={<ConfirmOrder/>} /> 
+      <Route path='/api/vnpay_return' element={<PaymentStatusHandler />} />
+      <Route path='/payment-failed' element={<PaymentFailed />} />
+      <Route path='/payment-success' element={<PaymentSuccess />} />
 
       <Route path='/dashboard' element={<ProtectUser/>} >
       <Route path='' element={<Dashboard/>} >        

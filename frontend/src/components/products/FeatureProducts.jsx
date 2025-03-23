@@ -43,12 +43,6 @@ const FeatureProducts = ({products}) => {
         dispatch(add_to_wishlist({
             userId: userInfo.id,
             productId: pro._id,
-            name: pro.name,
-            price: pro.price,
-            image: pro.images[0],
-            discount: pro.discount,
-            rating: pro.rating,
-            slug: pro.slug
         }))
     }
 
@@ -79,9 +73,9 @@ const FeatureProducts = ({products}) => {
             <Link to={`/product/details/${p._id}`} className='w-[38px] h-[38px] cursor-pointer bg-white flex justify-center items-center rounded-full hover:bg-[#059473] hover:text-white hover:rotate-[720deg] transition-all'>
             <FaEye />
             </Link> 
-            <li onClick={() => add_card(p._id)} className='w-[38px] h-[38px] cursor-pointer bg-white flex justify-center items-center rounded-full hover:bg-[#059473] hover:text-white hover:rotate-[720deg] transition-all'>
+            {/* <li onClick={() => add_card(p._id)} className='w-[38px] h-[38px] cursor-pointer bg-white flex justify-center items-center rounded-full hover:bg-[#059473] hover:text-white hover:rotate-[720deg] transition-all'>
             <RiShoppingCartLine />
-            </li>
+            </li> */}
         </ul>    
             </div>
 
