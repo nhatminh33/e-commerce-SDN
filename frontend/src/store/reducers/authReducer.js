@@ -79,6 +79,9 @@ export const authReducer = createSlice({
         user_reset: (state,_) => {
             state.userInfo = ""
         },
+        user_update: (state, action) => {
+            state.userInfo = action.payload
+        },
         setError: (state, action) => {
             state.errorMessage = action.payload.error
         }
@@ -124,5 +127,5 @@ export const authReducer = createSlice({
         })
     }
 })
-export const {messageClear,user_reset} = authReducer.actions
+export const {messageClear, user_reset, user_update} = authReducer.actions
 export default authReducer.reducer

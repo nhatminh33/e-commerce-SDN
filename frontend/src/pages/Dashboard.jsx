@@ -9,6 +9,7 @@ import { FaHeart } from "react-icons/fa";
 import { IoChatbubbleEllipsesSharp } from "react-icons/io5";
 import { IoMdLogOut } from "react-icons/io";
 import { RiLockPasswordLine } from "react-icons/ri";
+import { FaUserCircle } from "react-icons/fa";
 import api from '../api/api';
 import { useDispatch } from 'react-redux';
 import { user_reset } from '../store/reducers/authReducer'
@@ -55,6 +56,10 @@ const Dashboard = () => {
                                     <Link to='/dashboard' className='block' >Dashboard </Link>
                                 </li>
                                 <li className='flex justify-start items-center gap-2 py-2'>
+                                    <span className='text-xl'><FaUserCircle /></span>
+                                    <Link to='/dashboard/profile' className='block' >Profile </Link>
+                                </li>
+                                <li className='flex justify-start items-center gap-2 py-2'>
                                     <span className='text-xl'><FaBorderAll /></span>
                                     <Link to='/dashboard/my-orders' className='block' >My Orders </Link>
                                 </li>
@@ -83,12 +88,6 @@ const Dashboard = () => {
                         </div>
                     </div>
                 </div>
-
-
-
-
-
-
             </div>
 
             <Footer />

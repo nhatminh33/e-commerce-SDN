@@ -24,6 +24,8 @@ const add_address = async (req, res) => {
     } = req.body;
 
     try {
+        console.log('receiverName,phoneNumber,province,district,ward,streetAddress', receiverName,phoneNumber,province,district,ward,streetAddress);
+        
         // Validate required fields
         if (!receiverName || !phoneNumber || !province || !district || !ward || !streetAddress) {
             return responseReturn(res, 400, { error: "All fields are required!" });

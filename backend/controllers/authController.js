@@ -76,8 +76,11 @@ const get_user = async (req, res) => {
     try {
         // Lấy id trực tiếp từ req.id (được set bởi middleware authenticateToken)
         const id = req.id;
-
+        console.log('id', id);
+        
         const user = await userModel.findById(id);
+        console.log('user', user);
+        
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
