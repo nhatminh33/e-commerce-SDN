@@ -6,17 +6,17 @@ const sellerMiddleware = require("../../middlewares/sellerMiddleware");
  * @swagger
  * tags:
  *   name: OrderManager
- *   description: API quản lý đơn hàng cho người bán
+ *   description: API for order management by sellers
  */
 
-// Áp dụng middleware seller cho tất cả các route
+// Apply seller middleware to all routes
 router.use(sellerMiddleware);
 
 /**
  * @swagger
  * /seller/orders:
  *   get:
- *     summary: Lấy danh sách đơn hàng của người bán
+ *     summary: Get list of orders managed by seller
  *     tags: [OrderManager]
  *     security:
  *       - bearerAuth: []
@@ -26,33 +26,33 @@ router.use(sellerMiddleware);
  *         schema:
  *           type: integer
  *           default: 1
- *         description: Số trang
+ *         description: Page number
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 10
- *         description: Số lượng đơn hàng mỗi trang
+ *         description: Number of orders per page
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
  *           enum: [pending, processing, shipped, delivered, canceled]
- *         description: Lọc theo trạng thái đơn hàng
+ *         description: Filter by order status
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *         description: Tìm kiếm theo mã đơn hàng
+ *         description: Search by order ID
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
  *           enum: [newest, oldest, price-low-to-high, price-high-to-low]
- *         description: Sắp xếp đơn hàng
+ *         description: Sort orders
  *     responses:
  *       200:
- *         description: Danh sách đơn hàng
+ *         description: List of orders
  *         content:
  *           application/json:
  *             schema:
@@ -65,35 +65,35 @@ router.use(sellerMiddleware);
  *                     properties:
  *                       _id:
  *                         type: string
- *                         description: ID đơn hàng
+ *                         description: Order ID
  *                       customerId:
  *                         type: string
- *                         description: ID khách hàng
+ *                         description: Customer ID
  *                       products:
  *                         type: array
  *                         items:
  *                           type: object
  *                       status:
  *                         type: string
- *                         description: Trạng thái đơn hàng
+ *                         description: Order status
  *                       totalPrice:
  *                         type: number
- *                         description: Tổng giá trị đơn hàng
+ *                         description: Total order value
  *                       createdAt:
  *                         type: string
  *                         format: date-time
- *                         description: Thời gian tạo đơn hàng
+ *                         description: Order creation time
  *                 totalOrders:
  *                   type: integer
- *                   description: Tổng số đơn hàng
+ *                   description: Total number of orders
  *                 currentPage:
  *                   type: integer
- *                   description: Trang hiện tại
+ *                   description: Current page
  *                 totalPages:
  *                   type: integer
- *                   description: Tổng số trang
+ *                   description: Total pages
  *       401:
- *         description: Không có quyền truy cập
+ *         description: Unauthorized access
  */
 router.get("/", orderManagerController.manageOrders);
 
@@ -101,7 +101,7 @@ router.get("/", orderManagerController.manageOrders);
  * @swagger
  * /seller/orders/{orderId}:
  *   get:
- *     summary: Lấy chi tiết đơn hàng
+ *     summary: Get order details
  *     tags: [OrderManager]
  *     security:
  *       - bearerAuth: []
@@ -111,18 +111,18 @@ router.get("/", orderManagerController.manageOrders);
  *         schema:
  *           type: string
  *         required: true
- *         description: ID đơn hàng
+ *         description: Order ID
  *     responses:
  *       200:
- *         description: Chi tiết đơn hàng
+ *         description: Order details
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Order'
  *       401:
- *         description: Không có quyền truy cập
+ *         description: Unauthorized access
  *       404:
- *         description: Không tìm thấy đơn hàng
+ *         description: Order not found
  */
 router.get("/:orderId", orderManagerController.getOrderDetails);
 
@@ -130,7 +130,7 @@ router.get("/:orderId", orderManagerController.getOrderDetails);
  * @swagger
  * /seller/orders/update-status:
  *   put:
- *     summary: Cập nhật trạng thái đơn hàng
+ *     summary: Update order status
  *     tags: [OrderManager]
  *     security:
  *       - bearerAuth: []
@@ -140,26 +140,21 @@ router.get("/:orderId", orderManagerController.getOrderDetails);
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - orderId
- *               - status
  *             properties:
  *               orderId:
  *                 type: string
- *                 description: ID đơn hàng
- *               status:
+ *                 description: Order ID
+ *               delivery_status:
  *                 type: string
- *                 enum: [pending, processing, shipped, delivered, canceled]
- *                 description: Trạng thái đơn hàng mới
+ *                 description: New order status
+ *                 enum: [pending, shipping, delivered, canceled]
  *     responses:
  *       200:
- *         description: Trạng thái đơn hàng đã được cập nhật
+ *         description: Order status updated successfully
  *       400:
- *         description: Dữ liệu không hợp lệ
- *       401:
- *         description: Không có quyền truy cập
+ *         description: Invalid data
  *       404:
- *         description: Không tìm thấy đơn hàng
+ *         description: Order not found
  */
 router.put("/update-status", orderManagerController.updateDeliveryStatus);
 

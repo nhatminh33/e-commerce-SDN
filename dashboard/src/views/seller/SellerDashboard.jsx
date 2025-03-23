@@ -12,7 +12,7 @@ import customer from '../../assets/demo.jpg'
 const SellerDashboard = () => {
 
     const dispatch = useDispatch()
-    const {totalSale,totalOrder,totalProduct,totalPendingOrder,recentOrder,recentMessage} = useSelector(state=> state.dashboard)
+    const {totalSale,totalOrder,totalProduct,totalPendingOrder,recentOrder,recentMessage,chartData} = useSelector(state=> state.dashboard)
     const {userInfo} = useSelector(state=> state.auth)
 
 
@@ -25,15 +25,15 @@ const SellerDashboard = () => {
         series : [
             {
                 name : "Orders",
-                data : [23,34,45,56,76,34,23,76,87,78,34,45]
+                data : chartData?.orders || [0,0,0,0,0,0,0,0,0,0,0,0]
             },
             {
                 name : "Revenue",
-                data : [67,39,45,56,90,56,23,56,87,78,67,78]
+                data : chartData?.revenue || [0,0,0,0,0,0,0,0,0,0,0,0]
             },
             {
-                name : "Sales",
-                data : [34,39,56,56,80,67,23,56,98,78,45,56]
+                name : "Products Sold",
+                data : chartData?.sales || [0,0,0,0,0,0,0,0,0,0,0,0]
             },
         ],
         options : {
@@ -57,7 +57,7 @@ const SellerDashboard = () => {
                 dashArray : 0
             },
             xaxis : {
-                categories : ['Jan','Feb','Mar','Apl','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+                categories : chartData?.labels || ['Jan','Feb','Mar','Apl','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
             },
             legend : {
                 position : 'top'
@@ -95,7 +95,7 @@ const SellerDashboard = () => {
                 <div className='flex justify-between items-center p-5 bg-[#fae8e8] rounded-md gap-3'>
                     <div className='flex flex-col justify-start items-start text-[#5c5a5a]'>
                         <h2 className='text-3xl font-bold'>${totalSale}</h2>
-                        <span className='text-md font-medium'>Total Salse</span>
+                        <span className='text-md font-medium'>Total Revenue</span>
                     </div>
 
                     <div className='w-[40px] h-[47px] rounded-full bg-[#fa0305] flex justify-center items-center text-xl'>
@@ -131,7 +131,7 @@ const SellerDashboard = () => {
                 <div className='flex justify-between items-center p-5 bg-[#ecebff] rounded-md gap-3'>
                     <div className='flex flex-col justify-start items-start text-[#5c5a5a]'>
                         <h2 className='text-3xl font-bold'>{totalPendingOrder}</h2>
-                        <span className='text-md font-medium'>Pending Orders</span>
+                        <span className='text-md font-medium'>Processing Orders</span>
                     </div>
 
                     <div className='w-[40px] h-[47px] rounded-full bg-[#0200f8] flex justify-center items-center text-xl'>
@@ -154,15 +154,15 @@ const SellerDashboard = () => {
         <div className='w-full lg:w-5/12 lg:pl-4 mt-6 lg:mt-0'>
             <div className='w-full bg-[#6a5fdf] p-4 rounded-md text-[#d0d2d6]'>
                 <div className='flex justify-between items-center'>
-                    <h2 className='font-semibold text-lg text-[#d0d2d6] pb-3'>Recent Customer Message</h2>
-                    <Link className='font-semibold text-sm text-[#d0d2d6]'>View All</Link>
+                    <h2 className='font-semibold text-lg text-[#d0d2d6] pb-3'>Recent Customer Messages</h2>
+                    <Link to="/seller/dashboard/chat-customer" className='font-semibold text-sm text-[#d0d2d6]'>View All</Link>
                 </div>
 
         <div className='flex flex-col gap-2 pt-6 text-[#d0d2d6]'>
             <ol className='relative border-1 border-slate-600 ml-4'>
                
     {
-        recentMessage.map((m, i) => <li className='mb-3 ml-6'>
+        recentMessage.map((m, i) => <li className='mb-3 ml-6' key={i}>
         <div className='flex absolute -left-5 shadow-lg justify-center items-center w-10 h-10 p-[6px] bg-[#4c7fe2] rounded-full z-10'>
         {
             m.senderId === userInfo._id ? <img className='w-full rounded-full h-full shadow-lg' src={userInfo.image} alt="" /> : <img className='w-full rounded-full h-full shadow-lg' src={customer} alt="" />
@@ -195,7 +195,7 @@ const SellerDashboard = () => {
         <div className='w-full p-4 bg-[#6a5fdf] rounded-md mt-6'>
             <div className='flex justify-between items-center'>
                 <h2 className='font-semibold text-lg text-[#d0d2d6] pb-3 '>Recent Orders</h2>
-                <Link className='font-semibold text-sm text-[#d0d2d6]'>View All</Link>
+                <Link to="/seller/dashboard/orders" className='font-semibold text-sm text-[#d0d2d6]'>View All</Link>
                </div>
 
     <div className='relative overflow-x-auto'>
@@ -206,7 +206,7 @@ const SellerDashboard = () => {
             <th scope='col' className='py-3 px-4'>Price</th>
             <th scope='col' className='py-3 px-4'>Payment Status</th>
             <th scope='col' className='py-3 px-4'>Order Status</th>
-            <th scope='col' className='py-3 px-4'>Active</th>
+            <th scope='col' className='py-3 px-4'>Action</th>
         </tr>
         </thead>
 

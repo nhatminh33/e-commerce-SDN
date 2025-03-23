@@ -16,7 +16,7 @@ export const add_product = createAsyncThunk(
 // End Method 
 
 export const get_products = createAsyncThunk(
-    'product/get_products',
+    'product//seller-products',
     async(options, {rejectWithValue, fulfillWithValue}) => {
         try {
             const { 
@@ -32,7 +32,7 @@ export const get_products = createAsyncThunk(
                 sortOrder = 'desc'
             } = options || {};
             
-            const {data} = await api.get(`/products-get?page=${page}&searchValue=${searchValue}&parPage=${parPage}&sellerId=${sellerId}&categoryId=${categoryId}&minPrice=${minPrice}&maxPrice=${maxPrice}&minDiscount=${minDiscount}&sortBy=${sortBy}&sortOrder=${sortOrder}`, {withCredentials: true}) 
+            const {data} = await api.get(`/seller-products?page=${page}&searchValue=${searchValue}&parPage=${parPage}&sellerId=${sellerId}&categoryId=${categoryId}&minPrice=${minPrice}&maxPrice=${maxPrice}&minDiscount=${minDiscount}&sortBy=${sortBy}&sortOrder=${sortOrder}`, {withCredentials: true}) 
             return fulfillWithValue(data)
         } catch (error) {
             return rejectWithValue(error.response.data)

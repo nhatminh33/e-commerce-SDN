@@ -18,7 +18,7 @@ export const get_seller_dashboard_data = createAsyncThunk(
     'dashboard/get_seller_dashboard_data',
     async( _ ,{rejectWithValue, fulfillWithValue}) => { 
         try {
-            const {data} = await api.get('/seller/get-dashboard-data',{withCredentials: true})             
+            const {data} = await api.get('/seller/dashboard/data',{withCredentials: true})             
             return fulfillWithValue(data)
         } catch (error) { 
             return rejectWithValue(error.response.data)
@@ -38,7 +38,8 @@ export const dashboardReducer = createSlice({
         totalPendingOrder : 0,
         totalSeller:0,
         recentOrder: [],
-        recentMessage: []
+        recentMessage: [],
+        chartData: []
     },
     reducers : {
 
@@ -62,8 +63,9 @@ export const dashboardReducer = createSlice({
             state.totalOrder = payload.totalOrder
             state.totalProduct = payload.totalProduct 
             state.totalPendingOrder = payload.totalPendingOrder
-            state.recentOrder = payload.recentOrders
-            state.recentMessage = payload.messages
+            state.recentOrder = payload.recentOrder
+            state.recentMessage = payload.recentMessage
+            state.chartData = payload.chartData
         })
  
     }

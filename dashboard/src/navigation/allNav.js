@@ -112,13 +112,13 @@ export const allNav = [
         role : 'seller',
         path: '/seller/dashboard/orders'
     },
-    {
-        id : 15,
-        title : 'Payments',
-        icon : <MdPayment />,
-        role : 'seller',
-        path: '/seller/dashboard/payments'
-    },
+    // {
+    //     id : 15,
+    //     title : 'Payments',
+    //     icon : <MdPayment />,
+    //     role : 'seller',
+    //     path: '/seller/dashboard/payments'
+    // },
     {
         id : 16,
         title : 'Chat-Customer',
@@ -134,17 +134,17 @@ export const allNav = [
         path: '/seller/dashboard/chat-support'
     },
     {
+        id : 19,
+        title : 'Notifications',
+        icon : <IoMdNotificationsOutline />,
+        role : 'seller',
+        path: '/seller/dashboard/notifications'
+    },
+    {
         id : 18,
         title : 'Profile',
         icon : <CgProfile />,
         role : 'seller',
         path: '/seller/dashboard/profile'
     },
-    {
-        id : 19,
-        title : 'Notifications',
-        icon : <IoMdNotificationsOutline />,
-        role : 'seller',
-        path: '/seller/dashboard/notifications'
-    }
 ]

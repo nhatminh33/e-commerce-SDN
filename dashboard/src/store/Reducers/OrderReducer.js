@@ -56,6 +56,19 @@ export const get_admin_orders = createAsyncThunk(
 ) 
   // End Method 
 
+  export const manage_seller_orders = createAsyncThunk(
+    'orders/manage_seller_orders',
+    async({ parPage = 5, page = 1, searchValue = "", delivery_status, payment_status, startDate, endDate },{rejectWithValue, fulfillWithValue}) => { 
+        try { 
+            const {data} = await api.get(`/seller/orders?page=${page}&searchValue=${searchValue}&perPage=${parPage}${delivery_status ? `&delivery_status=${delivery_status}` : ''}${payment_status ? `&payment_status=${payment_status}` : ''}${startDate ? `&startDate=${startDate}` : ''}${endDate ? `&endDate=${endDate}` : ''}`,{withCredentials: true})  
+            return fulfillWithValue(data)
+        } catch (error) { 
+            return rejectWithValue(error.response.data)
+        }
+    }
+)
+  // End Method 
+
 
   export const get_seller_order = createAsyncThunk(
     'orders/get_seller_order',
@@ -83,6 +96,21 @@ export const get_admin_orders = createAsyncThunk(
 ) 
   // End Method  
 
+  export const update_order_status = createAsyncThunk(
+    'orders/update_order_status',
+    async({ orderId, delivery_status }, { rejectWithValue, fulfillWithValue }) => {
+        try {
+            const { data } = await api.put('/seller/orders/update-status', {
+                orderId,
+                delivery_status
+            }, { withCredentials: true })
+            return fulfillWithValue(data)
+        } catch (error) {
+            return rejectWithValue(error.response?.data || { error: 'Có lỗi xảy ra' })
+        }
+    }
+)
+  // End Method
  
 export const OrderReducer = createSlice({
     name: 'order',
@@ -91,7 +119,8 @@ export const OrderReducer = createSlice({
         errorMessage : '',
         totalOrder: 0,
         order : {}, 
-        myOrders: []
+        myOrders: [],
+        loading: false
     },
     reducers : {
 
@@ -99,11 +128,59 @@ export const OrderReducer = createSlice({
             state.errorMessage = ""
             state.successMessage = ""
         }
-
     },
     extraReducers: (builder) => {
         builder
-          
+        // GET SELLER ORDERS
+        .addCase(get_seller_orders.pending, (state) => {
+            state.loading = true
+        })
+        .addCase(get_seller_orders.fulfilled, (state, action) => {
+            state.loading = false
+            state.myOrders = action.payload.orders
+            state.totalOrder = action.payload.totalOrder
+        })
+        .addCase(get_seller_orders.rejected, (state, action) => {
+            state.loading = false
+            state.errorMessage = action.payload?.error || "Có lỗi xảy ra"
+        })
+
+        // MANAGE SELLER ORDERS
+        .addCase(manage_seller_orders.pending, (state) => {
+            state.loading = true
+        })
+        .addCase(manage_seller_orders.fulfilled, (state, action) => {
+            state.loading = false
+            state.myOrders = action.payload.orders
+            state.totalOrder = action.payload.totalOrder
+        })
+        .addCase(manage_seller_orders.rejected, (state, action) => {
+            state.loading = false
+            state.errorMessage = action.payload?.error || "Có lỗi xảy ra"
+        })
+
+        // UPDATE ORDER STATUS
+        .addCase(update_order_status.pending, (state) => {
+            state.loading = true
+        })
+        .addCase(update_order_status.fulfilled, (state, action) => {
+            state.loading = false
+            state.successMessage = action.payload.message
+            // Cập nhật trạng thái đơn hàng trong danh sách
+            const updatedOrder = action.payload.order
+            state.myOrders = state.myOrders.map(order => 
+                order._id === updatedOrder._id ? {...order, delivery_status: updatedOrder.delivery_status} : order
+            )
+            // Nếu đang xem chi tiết đơn hàng, cập nhật luôn state order
+            if (state.order && state.order._id === updatedOrder._id) {
+                state.order = {...state.order, delivery_status: updatedOrder.delivery_status}
+            }
+        })
+        .addCase(update_order_status.rejected, (state, action) => {
+            state.loading = false
+            state.errorMessage = action.payload?.error || "Có lỗi xảy ra khi cập nhật trạng thái"
+        })
+
         .addCase(get_admin_orders.fulfilled, (state, { payload }) => {
             state.myOrders = payload.orders;
             state.totalOrder = payload.totalOrder; 
@@ -118,10 +195,6 @@ export const OrderReducer = createSlice({
             state.successMessage = payload.message; 
         })
 
-        .addCase(get_seller_orders.fulfilled, (state, { payload }) => {
-            state.myOrders = payload.orders;
-            state.totalOrder = payload.totalOrder; 
-        })
         .addCase(get_seller_order.fulfilled, (state, { payload }) => {
             state.order = payload.order; 
         })

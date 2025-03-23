@@ -6,15 +6,15 @@ const categoryModel = require("../../models/categoryModel");
 const { responseReturn } = require("../../utiles/response");
 
 /**
- * Lấy danh sách đơn hàng của seller với các tùy chọn lọc và tìm kiếm
+ * Get list of orders managed by seller with filter and search options
  * @param {Object} req - Request object
  * @param {Object} res - Response object
- * @returns {Object} - Trả về danh sách đơn hàng và thông tin phân trang
+ * @returns {Object} - Returns list of orders and pagination details
  */
 const manageOrders = async (req, res) => {
     try {
         const sellerId = req.id;
-        const { 
+        let { 
             page = 1, 
             perPage = 10, 
             searchValue = "", 
@@ -24,16 +24,20 @@ const manageOrders = async (req, res) => {
             endDate
         } = req.query;
 
-        // Xây dựng query tìm các sản phẩm của seller
+        // Ensure page and perPage are valid numbers
+        page = parseInt(page) || 1;
+        perPage = parseInt(perPage) || 10;
+
+        // Build query to find seller's products
         const sellerProducts = await productModel.find({ sellerId }).select("_id");
         const sellerProductIds = sellerProducts.map(product => product._id);
 
-        // Điều kiện cơ bản: chỉ lấy đơn hàng có sản phẩm của seller này
+        // Basic condition: only get orders containing seller's products
         const matchQuery = {
             "products.productId": { $in: sellerProductIds }
         };
 
-        // Thêm các điều kiện lọc nếu có
+        // Add filter conditions if provided
         if (delivery_status) {
             matchQuery.delivery_status = delivery_status;
         }
@@ -42,19 +46,38 @@ const manageOrders = async (req, res) => {
             matchQuery.payment_status = payment_status;
         }
 
-        // Lọc theo khoảng thời gian
+        // Filter by date range
         if (startDate && endDate) {
-            const start = new Date(startDate);
-            const end = new Date(endDate);
-            end.setHours(23, 59, 59, 999); // Đặt về cuối ngày
+            try {
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999); // Set to end of day
 
-            matchQuery.createdAt = {
-                $gte: start,
-                $lte: end
-            };
+                if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+                    // If the order has a createdAt field, use it
+                    // Otherwise, try to use the date field
+                    matchQuery.$or = [
+                        {
+                            createdAt: {
+                                $gte: start,
+                                $lte: end
+                            }
+                        },
+                        {
+                            // For old orders without createdAt, try to convert from date field
+                            date: {
+                                $regex: new RegExp(`${start.getFullYear()}|${end.getFullYear()}`)
+                            }
+                        }
+                    ];
+                }
+            } catch (error) {
+                console.error("Error parsing dates:", error);
+                // Skip date filtering if there's an error
+            }
         }
 
-        // Tạo pipeline cho tìm kiếm và lọc nâng cao
+        // Create pipeline for advanced search and filtering
         const pipeline = [
             {
                 $lookup: {
@@ -88,7 +111,7 @@ const manageOrders = async (req, res) => {
             }
         ];
 
-        // Thêm tìm kiếm theo searchValue
+        // Add search by searchValue
         if (searchValue && searchValue.trim() !== '') {
             pipeline.push({
                 $match: {
@@ -101,30 +124,30 @@ const manageOrders = async (req, res) => {
             });
         }
 
-        // Thêm phân trang
-        const skip = (parseInt(page) - 1) * parseInt(perPage);
+        // Add pagination
+        const skip = (page - 1) * perPage;
         
-        // Đếm tổng số đơn hàng thỏa mãn điều kiện
+        // Count total orders matching the criteria
         const totalOrders = await orderModel.aggregate([...pipeline, { $count: "total" }]);
         const total = totalOrders.length > 0 ? totalOrders[0].total : 0;
         
-        // Thêm phân trang vào pipeline
+        // Add pagination to pipeline
         pipeline.push(
             { $skip: skip },
-            { $limit: parseInt(perPage) }
+            { $limit: perPage }
         );
 
-        // Thực hiện truy vấn
+        // Execute query
         const orders = await orderModel.aggregate(pipeline);
 
-        // Lọc sản phẩm trong mỗi đơn hàng để chỉ hiển thị sản phẩm của seller này
+        // Filter products in each order to only show seller's products
         const filteredOrders = orders.map(order => {
-            // Lọc các sản phẩm trong đơn hàng chỉ lấy của seller này
+            // Filter products in the order to only include those from this seller
             const sellerProducts = order.products.filter(product => 
                 sellerProductIds.some(id => id.equals(product.productId))
             );
             
-            // Tính lại tổng giá trị của các sản phẩm của seller này
+            // Calculate total value of this seller's products
             const sellerTotal = sellerProducts.reduce((sum, product) => sum + product.subTotal, 0);
             
             return {
@@ -136,24 +159,20 @@ const manageOrders = async (req, res) => {
 
         return responseReturn(res, 200, {
             orders: filteredOrders,
-            pagination: {
-                totalOrders: total,
-                currentPage: parseInt(page),
-                totalPages: Math.ceil(total / parseInt(perPage))
-            }
+            totalOrder: total
         });
 
     } catch (error) {
         console.error("Error fetching seller orders:", error);
-        return responseReturn(res, 500, { error: "Internal server error" });
+        return responseReturn(res, 500, { error: error.message });
     }
 };
 
 /**
- * Lấy chi tiết một đơn hàng
+ * Get details of a specific order
  * @param {Object} req - Request object
  * @param {Object} res - Response object
- * @returns {Object} - Trả về thông tin chi tiết của đơn hàng
+ * @returns {Object} - Returns order details
  */
 const getOrderDetails = async (req, res) => {
     try {
@@ -164,11 +183,11 @@ const getOrderDetails = async (req, res) => {
             return responseReturn(res, 400, { error: "Invalid order ID" });
         }
 
-        // Lấy danh sách sản phẩm của seller
+        // Get seller's products
         const sellerProducts = await productModel.find({ sellerId }).select("_id");
         const sellerProductIds = sellerProducts.map(product => product._id);
 
-        // Lấy thông tin đơn hàng
+        // Get order information
         const order = await orderModel.findById(orderId)
             .populate("userId", "name email phoneNumber")
             .populate("products.productId", "name images price discount");
@@ -177,7 +196,7 @@ const getOrderDetails = async (req, res) => {
             return responseReturn(res, 404, { error: "Order not found" });
         }
 
-        // Kiểm tra xem đơn hàng có chứa sản phẩm của seller này không
+        // Check if order contains seller's products
         const hasSellerProducts = order.products.some(product => 
             sellerProductIds.some(id => id.equals(product.productId._id))
         );
@@ -186,12 +205,12 @@ const getOrderDetails = async (req, res) => {
             return responseReturn(res, 403, { error: "Access denied. This order does not contain your products." });
         }
 
-        // Lọc sản phẩm chỉ hiển thị của seller này
+        // Filter products to only show seller's products
         const filteredProducts = order.products.filter(product => 
             sellerProductIds.some(id => id.equals(product.productId._id))
         );
         
-        // Tính tổng giá trị các sản phẩm của seller
+        // Calculate total value of seller's products
         const sellerTotal = filteredProducts.reduce((sum, product) => sum + product.subTotal, 0);
 
         const orderDetails = {
@@ -209,16 +228,15 @@ const getOrderDetails = async (req, res) => {
         return responseReturn(res, 200, { order: orderDetails });
 
     } catch (error) {
-        console.error("Error fetching order details:", error);
         return responseReturn(res, 500, { error: "Internal server error" });
     }
 };
 
 /**
- * Cập nhật trạng thái giao hàng của đơn hàng
+ * Update the delivery status of an order
  * @param {Object} req - Request object
  * @param {Object} res - Response object
- * @returns {Object} - Trả về thông báo kết quả cập nhật
+ * @returns {Object} - Returns result message
  */
 const updateDeliveryStatus = async (req, res) => {
     try {
@@ -233,24 +251,24 @@ const updateDeliveryStatus = async (req, res) => {
             return responseReturn(res, 400, { error: "Invalid order ID" });
         }
 
-        // Kiểm tra trạng thái hợp lệ
+        // Validate status
         const validStatuses = ["pending", "shipping", "delivered", "canceled"];
         if (!validStatuses.includes(delivery_status)) {
             return responseReturn(res, 400, { error: "Invalid delivery status" });
         }
 
-        // Lấy danh sách sản phẩm của seller
+        // Get seller's products
         const sellerProducts = await productModel.find({ sellerId }).select("_id");
         const sellerProductIds = sellerProducts.map(product => product._id);
 
-        // Lấy thông tin đơn hàng
+        // Get order details
         const order = await orderModel.findById(orderId);
 
         if (!order) {
             return responseReturn(res, 404, { error: "Order not found" });
         }
 
-        // Kiểm tra xem đơn hàng có chứa sản phẩm của seller này không
+        // Check if order contains seller's products
         const hasSellerProducts = order.products.some(product => 
             sellerProductIds.some(id => id.equals(product.productId))
         );
@@ -259,14 +277,14 @@ const updateDeliveryStatus = async (req, res) => {
             return responseReturn(res, 403, { error: "Access denied. This order does not contain your products." });
         }
 
-        // Nếu đơn hàng đã bị hủy, không cho phép cập nhật
+        // If order is canceled, don't allow updates
         if (order.delivery_status === "canceled") {
             return responseReturn(res, 400, { error: "Cannot update a canceled order" });
         }
 
-        // Nếu thay đổi trạng thái thành "canceled", cần hoàn lại stock
+        // If changing status to "canceled", restore stock
         if (delivery_status === "canceled" && order.delivery_status !== "canceled") {
-            // Chỉ hoàn lại stock cho sản phẩm của seller này
+            // Only restore stock for seller's products
             for (const item of order.products) {
                 if (sellerProductIds.some(id => id.equals(item.productId))) {
                     await productModel.findByIdAndUpdate(
@@ -277,9 +295,8 @@ const updateDeliveryStatus = async (req, res) => {
             }
         }
 
-        // Cập nhật trạng thái đơn hàng
+        // Update order status
         order.delivery_status = delivery_status;
-
         await order.save();
 
         return responseReturn(res, 200, { 
@@ -288,7 +305,6 @@ const updateDeliveryStatus = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Error updating delivery status:", error);
         return responseReturn(res, 500, { error: "Internal server error" });
     }
 };
