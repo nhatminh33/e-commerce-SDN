@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import api from "../../api/api";
+import axios from "axios";
 
 
 export const get_category = createAsyncThunk(
@@ -34,7 +35,7 @@ export const get_products = createAsyncThunk(
                 rating = 0
             } = filters || {};
 
-            const { data } = await api.get('/get-products', {
+            const { data } = await api.get('/products-get', {
                 page,
                 perPage,
                 searchValue,
@@ -89,11 +90,11 @@ export const query_products = createAsyncThunk(
 
 export const product_details = createAsyncThunk(
     'product/product_details',
-    async(slug, { fulfillWithValue }) => {
+    async(id, { fulfillWithValue }) => {
         try {
-            const {data} = await api.get(`/home/product-details/${slug}`)
-            //  console.log(data)
-            return fulfillWithValue(data)
+            const res = await axios.get(`http://localhost:5000/api/customer/product/${id}`)
+             console.log('haha', res.data.data)
+            return fulfillWithValue(res.data.data)
         } catch (error) {
             console.log(error.respone)
         }
@@ -213,9 +214,9 @@ export const homeReducer = createSlice({
         })
 
         .addCase(product_details.fulfilled, (state, { payload }) => { 
-            state.product = payload.product;
-            state.relatedProducts = payload.relatedProducts;
-            state.moreProducts = payload.moreProducts; 
+            state.product = payload;
+            // state.relatedProducts = payload.relatedProducts;
+            // state.moreProducts = payload.moreProducts; 
         })
 
         .addCase(customer_review.fulfilled, (state, { payload }) => {
