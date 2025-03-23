@@ -1,34 +1,29 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import api from "../../api/api"; 
+import api from "../../api/api";
 
 export const place_order = createAsyncThunk(
     'order/place_order',
-    async({ price,products,shipping_fee,items,shippingInfo,userId,navigate}) => {
+    async ({ userId, shippingInfo, selectedItems }, { rejectWithValue, fulfillWithValue }) => {
         try {
-            const { data } = await api.post('/home/order/place-order',{
-                price,products,shipping_fee,items,shippingInfo,userId,navigate
-            })
-            navigate('/payment',{
-                state: {
-                    price:price + shipping_fee,
-                    items,
-                    orderId: data.orderId 
-                }
-            })
-            console.log(data)
+            console.log({ userId, shippingInfo, selectedItems });
+
+            const { data } = await api.post("/customer/order", { userId, shippingInfo, selectedItems })
+            console.log(data);
+
+            return fulfillWithValue(data)
         } catch (error) {
-            console.log(error.response)
+            return rejectWithValue(error.response.data)
         }
-        
+
     }
 )
 // End Method 
 
 export const get_orders = createAsyncThunk(
     'order/get_orders',
-    async({customerId,status}, { rejectWithValue,fulfillWithValue }) => {
+    async ({ customerId, status }, { rejectWithValue, fulfillWithValue }) => {
         try {
-            const {data} = await api.get(`/home/coustomer/get-orders/${customerId}/${status}`) 
+            const { data } = await api.get(`/home/coustomer/get-orders/${customerId}/${status}`)
             // console.log(data)
             return fulfillWithValue(data)
         } catch (error) {
@@ -40,9 +35,9 @@ export const get_orders = createAsyncThunk(
 
 export const get_order_details = createAsyncThunk(
     'order/get_order_details',
-    async(orderId , { rejectWithValue,fulfillWithValue }) => {
+    async (orderId, { rejectWithValue, fulfillWithValue }) => {
         try {
-            const {data} = await api.get(`/home/coustomer/get-order-details/${orderId}`) 
+            const { data } = await api.get(`/home/coustomer/get-order-details/${orderId}`)
             // console.log(data)
             return fulfillWithValue(data)
         } catch (error) {
@@ -51,36 +46,43 @@ export const get_order_details = createAsyncThunk(
     }
 )
 // End Method 
- 
+
 
 
 export const orderReducer = createSlice({
     name: 'order',
-    initialState:{
-        myOrders : [], 
-        errorMessage : '',
-        successMessage: '',  
-        myOrder : {},
+    initialState: {
+        myOrders: [],
+        errorMessage: '',
+        successMessage: '',
+        myOrder: {},
     },
-    reducers : {
+    reducers: {
 
-        messageClear : (state,_) => {
+        messageClear: (state, _) => {
             state.errorMessage = ""
             state.successMessage = ""
+        },
+        reset_count: (state, _) => {
+            state.card_product_count = 0
+            state.wishlist_count = 0
         }
- 
+
     },
     extraReducers: (builder) => {
         builder
-        
-        .addCase(get_orders.fulfilled, (state, { payload }) => { 
-            state.myOrders = payload.orders; 
-        })
-        .addCase(get_order_details.fulfilled, (state, { payload }) => { 
-            state.myOrder = payload.order; 
-        })
-        
+            .addCase(place_order.fulfilled, (state, { payload }) => {
+                state.successMessage = payload.message;
+                state.myOrder = payload.orders
+            })
+            .addCase(get_orders.fulfilled, (state, { payload }) => {
+                state.myOrders = payload.orders;
+            })
+            .addCase(get_order_details.fulfilled, (state, { payload }) => {
+                state.myOrder = payload.order;
+            })
+
     }
 })
-export const {messageClear} = orderReducer.actions
+export const { messageClear, reset_count } = orderReducer.actions
 export default orderReducer.reducer

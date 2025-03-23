@@ -110,6 +110,7 @@ const Products = () => {
                         <tbody>
                             {
                                 products && products.map((p, i) => (
+                                    console.log('aaa',p),
                                     <tr key={p._id}>
                                         <td scope='row' className='py-3 px-4 font-medium whitespace-nowrap'>{((currentPage - 1) * perPage) + i + 1}</td>
                                         <td scope='row' className='py-3 px-4 font-medium whitespace-nowrap'>

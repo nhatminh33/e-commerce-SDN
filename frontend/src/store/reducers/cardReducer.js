@@ -1,11 +1,12 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import api from "../../api/api"; 
+import axios from "axios";
 
 export const add_to_card = createAsyncThunk(
     'card/add_to_card',
     async(info, { rejectWithValue,fulfillWithValue }) => {
         try {
-            const {data} = await api.post('/home/product/add-to-card',info) 
+            const {data} = await axios.post('http://localhost:5000/api/customer/add-to-cart',info) 
             console.log(data)
             return fulfillWithValue(data)
         } catch (error) {
@@ -78,8 +79,7 @@ export const add_to_wishlist = createAsyncThunk(
     'wishlist/add_to_wishlist',
     async(info, { rejectWithValue,fulfillWithValue }) => {
         try {
-            const {data} = await api.post('/home/product/add-to-wishlist',info) 
-            // console.log(data)
+            const {data} = await axios.post('http://localhost:5000/api/customer/wishlist',info) 
             return fulfillWithValue(data)
         } catch (error) {
             return rejectWithValue(error.response.data)
@@ -92,9 +92,9 @@ export const get_wishlist_products = createAsyncThunk(
     'wishlist/get_wishlist_products',
     async(userId, { rejectWithValue,fulfillWithValue }) => {
         try {
-            const {data} = await api.get(`/home/product/get-wishlist-products/${userId}`) 
-            // console.log(data)
-            return fulfillWithValue(data)
+            const {data} = await axios.get(`http://localhost:5000/api/customer/wishlist/${userId}`) 
+            console.log('s',data.data.user.products)
+            return fulfillWithValue(data.data.user.products)
         } catch (error) {
             return rejectWithValue(error.response.data)
         }
@@ -184,8 +184,8 @@ export const cardReducer = createSlice({
         })
 
         .addCase(get_wishlist_products.fulfilled, (state, { payload }) => { 
-            state.wishlist = payload.wishlists; 
-            state.wishlist_count = payload.wishlistCount 
+            state.wishlist = payload; 
+            // state.wishlist_count = payload.wishlistCount 
         })
 
         .addCase(remove_wishlist.fulfilled, (state, { payload }) => { 

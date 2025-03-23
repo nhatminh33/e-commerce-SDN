@@ -33,9 +33,6 @@ const Details = () => {
 
     useEffect(() => {
         dispatch(product_details(_id))
-        console.log('====================================');
-        console.log(product);
-        console.log('====================================');
     },[_id])
    
     useEffect(() => { 
@@ -122,12 +119,6 @@ const Details = () => {
             dispatch(add_to_wishlist({
                 userId: userInfo.id,
                 productId: product._id,
-                name: product.name,
-                price: product.price,
-                image: product.images[0],
-                discount: product.discount,
-                rating: product.rating,
-                id: product.id
             }))
         } else {
             navigate('/login')
@@ -235,11 +226,11 @@ const Details = () => {
 
         <div className='flex flex-col gap-5'>
                 <div className='text-3xl text-slate-600 font-bold'>
-                    <h3>{product.name} </h3>
+                    <h3>{product.name}</h3>
                 </div>
                 <div className='flex justify-start items-center gap-4'>
                     <div className='flex text-xl'>
-                        <Rating ratings={4.5} />
+                        <Rating ratings={product.rating} />
                     </div>
                     <span className='text-green-500'>(24 reviews)</span> 
                 </div>
@@ -255,8 +246,8 @@ const Details = () => {
           </div> 
 
           <div className='text-slate-600'>
-            <p>{product.description}  </p>
-            <p className='text-slate-600 py-1 font-bold'>Shop Name : {product.sellerId?.name || "Không có tên"}</p>
+            <p>{product.description}</p>
+            <p className='text-slate-600 py-1 font-bold'>Shop Name : {product.sellerId?.name || "No name"}</p>
            </div> 
 
             <div className='flex gap-3 pb-10 border-b'>
