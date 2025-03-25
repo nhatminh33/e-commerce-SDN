@@ -249,7 +249,7 @@ const Header = () => {
     </div>
 
 
-    <div className='w-[85%] lg:w-[90%] mx-auto'>
+    {/* <div className='w-[85%] lg:w-[90%] mx-auto'>
         <div className='flex w-full flex-wrap md-lg:gap-8'>
             <div className='w-3/12 md-lg:w-full'>
                 <div className='bg-white relative'>
@@ -320,7 +320,7 @@ const Header = () => {
 
 
         </div> 
-    </div>
+    </div> */}
 
 
 
