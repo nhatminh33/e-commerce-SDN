@@ -3,123 +3,79 @@ import Header from "../components/Header";
 import Banner from "../components/Banner";
 import Footer from "../components/Footer";
 import FeatureProducts from "../components/products/FeatureProducts";
-import { useDispatch, useSelector } from "react-redux";
-import { get_products } from "../store/reducers/homeReducer";
-import { Range } from "react-range";
+import { useSelector } from "react-redux";
 import "../styles/home.css";
 
 const Home = () => {
-  const dispatch = useDispatch();
-  const { products, totalProduct } = useSelector((state) => state.home);
+  const { products } = useSelector((state) => state.home);
+  const [filteredProducts, setFilteredProducts] = useState(products);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortType, setSortType] = useState("");
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 10000000 });
+  const [ratingFilter, setRatingFilter] = useState(0);
 
-  const [rating, setRating] = useState("");
-  const priceRange = { low: 0, high: 10000000 };
-  const [state, setState] = useState({ values: [0, 10000000] });
-  const [sortPrice, setSortPrice] = useState("");
-  const [page, setPage] = useState(1);
-  const perPage = 10;
-
-  // Fetch products with filters
   useEffect(() => {
-    const sortBy = sortPrice === "low-to-high" ? "price" : "price";
-    const sortOrder = sortPrice === "low-to-high" ? "asc" : "desc";
+    let filtered = products;
 
-    dispatch(
-      get_products({
-        page,
-        perPage,
-        minPrice: state.values[0],
-        maxPrice: state.values[1],
-        rating: rating || 0,
-        sortBy,
-        sortOrder,
-      })
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(product =>
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Price filter
+    filtered = filtered.filter(product =>
+      product.price >= priceRange.min && product.price <= priceRange.max
     );
-  }, [dispatch, state.values, rating, sortPrice, page]);
+
+    // Rating filter
+    if (ratingFilter > 0) {
+      filtered = filtered.filter(product => product.rating >= ratingFilter);
+    }
+
+    // Sort products
+    if (sortType === "priceLowHigh") {
+      filtered.sort((a, b) => a.price - b.price);
+    } else if (sortType === "priceHighLow") {
+      filtered.sort((a, b) => b.price - a.price);
+    }
+
+    setFilteredProducts(filtered);
+  }, [products, searchTerm, sortType, priceRange, ratingFilter]);
 
   return (
-    <div className="w-full">
+    <div className="w-full" >
       <Header />
-      <div className="banner-container">
-        <Banner />
-      </div>
-
-      <div className="flex w-[85%] lg:w-[90%] mx-auto">
-        {/* Sidebar Filters */}
-        <aside className="w-1/4 p-4 border-r border-gray-200">
-          {/* Price Filter */}
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold mb-3 text-slate-600">Price</h2>
-            <Range
-              step={1000}
-              min={priceRange.low}
-              max={priceRange.high}
-              values={state.values}
-              onChange={(values) => setState({ values })}
-              renderTrack={({ props, children }) => (
-                <div
-                  {...props}
-                  className="w-full h-[6px] bg-slate-200 rounded-full cursor-pointer"
-                >
-                  {children}
-                </div>
-              )}
-              renderThumb={({ props }) => (
-                <div
-                  {...props}
-                  className="w-[15px] h-[15px] bg-[#059473] rounded-full"
-                />
-              )}
-            />
-            <div>
-              <span className="text-slate-800 font-bold text-lg">
-                ${Math.floor(state.values[0])} - ${Math.floor(state.values[1])}
-              </span>
-            </div>
-          </div>
-
-          {/* Rating Filter */}
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold mb-3 text-slate-600">Rating</h2>
-            <input
-              type="number"
-              value={rating}
-              onChange={(e) => {
-                const value = e.target.value;
-                setRating(value >= 1 && value <= 5 ? value : "");
-              }}
-              min={1}
-              max={5}
-              className="w-full p-2 border rounded-lg outline-none"
-              placeholder="Enter rating (1 - 5)"
-            />
-            <small className="text-gray-500">
-              Enter a rating between 1 and 5
-            </small>
-          </div>
-        </aside>
-
-        {/* Main Content */}
+      <Banner />
+      <div className="flex w-[85%] lg:w-[90%] mx-auto" style={{display: "flex", justifyContent:"center"}}>
         <div className="w-3/4 p-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-medium text-slate-600">
-              ({totalProduct}) Products
-            </h2>
-            <div className="flex items-center gap-4">
-              <select
-                onChange={(e) => setSortPrice(e.target.value)}
-                className="p-1 border outline-0 text-slate-600 font-semibold"
-              >
-                <option value="">Sort By</option>
-                <option value="low-to-high">Low to High Price</option>
-                <option value="high-to-low">High to Low Price</option>
-              </select>
-            </div>
-          </div>
-          <FeatureProducts products={products} />
+          <input
+          style={{width: "70%"}} 
+            type="text"
+            placeholder="Search products..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="mb-4 p-2 border rounded"
+          />
+
+        <button style={{height: "42px"}} className='bg-[#059473] px-8 absolute font-semibold uppercase text-white' >Search</button>
+        {/* right-0 absolute px-8 h-full font-semibold uppercase text-white */}
+          
+          <select
+            style={{marginLeft: "150px"}}
+            value={sortType}
+            onChange={(e) => setSortType(e.target.value)}
+            className="mb-4 p-2 border rounded"
+          >
+            <option value="">Select Sort Type</option>
+            <option value="priceLowHigh">Price: Low to High</option>
+            <option value="priceHighLow">Price: High to Low</option>
+          </select>
+          <FeatureProducts products={filteredProducts} />
         </div>
       </div>
-
       <Footer />
     </div>
   );
