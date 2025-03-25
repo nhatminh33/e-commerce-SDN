@@ -333,17 +333,17 @@
                                 
 //                                 <div className='grid grid-cols-3 gap-4 mt-2'>
 //                                     <div className='bg-[#475569] p-3 rounded-md'>
-//                                         <h3 className='text-gray-300 text-sm'>Price</h3>
+//                                         <h3 className='text-gray-500 text-sm'>Price</h3>
 //                                         <p className='text-lg font-bold'>${product.price}</p>
 //                                     </div>
                                     
 //                                     <div className='bg-[#475569] p-3 rounded-md'>
-//                                         <h3 className='text-gray-300 text-sm'>Discount</h3>
+//                                         <h3 className='text-gray-500 text-sm'>Discount</h3>
 //                                         <p className='text-lg font-bold'>{product.discount}%</p>
 //                                     </div>
                                     
 //                                     <div className='bg-[#475569] p-3 rounded-md'>
-//                                         <h3 className='text-gray-300 text-sm'>Stock</h3>
+//                                         <h3 className='text-gray-500 text-sm'>Stock</h3>
 //                                         <p className='text-lg font-bold'>{product.stock}</p>
 //                                     </div>
 //                                 </div>
@@ -644,14 +644,14 @@ const ProductDetails = () => {
                                     </div>
                                     
                                     <div className='flex flex-col gap-1'>
-                                        <label htmlFor='costPrice'>Cost Price</label>
+                                        <label htmlFor='text-gray-600 font-medium'>Cost Price</label>
                                         <input 
                                             type='number' 
                                             id='costPrice' 
                                             name='costPrice' 
                                             value={state.costPrice} 
                                             onChange={handleInputChange}
-                                            className='px-3 py-2 bg-[#475569] border border-slate-700 rounded-md outline-none focus:border-indigo-500 text-white'
+                                            className='px-4 py-2 bg-white border border-pink-200 rounded-md outline-none focus:border-pink-500'
                                         />
                                     </div>
                                     
@@ -736,20 +736,20 @@ const ProductDetails = () => {
                                         <p className='text-lg font-bold text-pink-600'>${product.price}</p>
                                     </div>
                                     
-                                    <div className='bg-[#475569] p-3 rounded-md'>
-                                        <h3 className='text-gray-300 text-sm'>Cost Price</h3>
+                                    <div className='bg-pink-50 p-4 rounded-lg border border-pink-100'>
+                                        <h3 className='text-gray-500 text-sm'>Cost Price</h3>
                                         <p className='text-lg font-bold'>${product.costPrice || 0}</p>
                                     </div>
                                     
-                                    <div className='bg-[#475569] p-3 rounded-md'>
-                                        <h3 className='text-gray-300 text-sm'>Discount</h3>
+                                    <div className='bg-pink-50 p-4 rounded-lg border border-pink-100'>
+                                        <h3 className='text-gray-500 text-sm'>Discount</h3>
                                         <p className='text-lg font-bold'>{product.discount}%</p>
                                     </div>
                                 </div>
                                 
                                 <div className='grid grid-cols-2 gap-4 mt-2'>
-                                    <div className='bg-[#475569] p-3 rounded-md'>
-                                        <h3 className='text-gray-300 text-sm'>Stock</h3>
+                                    <div className='bg-pink-50 p-4 rounded-lg border border-pink-100'>
+                                        <h3 className='text-gray-500 text-sm'>Stock</h3>
                                         <p className='text-lg font-bold'>{product.stock}</p>
                                     </div>
                                     
@@ -777,8 +777,8 @@ const ProductDetails = () => {
                                         </p>
                                     </div>
                                     
-                                    <div className='bg-[#475569] p-3 rounded-md'>
-                                        <h3 className='text-gray-300 text-sm'>Profit Margin</h3>
+                                    <div className='bg-pink-50 p-4 rounded-lg border border-pink-100'>
+                                        <h3 className='text-gray-500 text-sm'>Profit Margin</h3>
                                         <p className='text-lg font-bold'>
                                             {product.costPrice ? ((product.price - product.costPrice) / product.price * 100).toFixed(2) : 100}%
                                         </p>

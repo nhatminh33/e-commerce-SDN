@@ -197,31 +197,6 @@ const Login = () => {
                         >
                             {loader ? <PropagateLoader color='#fff' cssOverride={overrideStyle} /> : 'Sign In'}
                         </button>
-
-                        <div className='flex items-center gap-1 justify-center text-sm text-gray-600'>
-                            <p>Don't have an account?</p>
-                            <Link className='font-semibold text-pink-600 hover:underline ml-1' to="/register">Sign Up</Link>
-                        </div>
-
-                        <div className='w-full flex justify-center items-center my-4'>
-                            <div className='w-[45%] bg-gray-200 h-[1px]'></div>
-                            <div className='w-[10%] flex justify-center items-center'>
-                                <span className='text-gray-500 text-sm px-2'>Or</span>
-                            </div>
-                            <div className='w-[45%] bg-gray-200 h-[1px]'></div>
-                        </div>
-
-                        <div className='flex justify-center items-center gap-4'>
-                            <button type="button" className='flex items-center justify-center gap-2 w-full py-2 rounded-md bg-red-500 hover:bg-red-600 text-white transition-all shadow-sm'>
-                                <FaGoogle />
-                                <span>Google</span>
-                            </button>
-
-                            <button type="button" className='flex items-center justify-center gap-2 w-full py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-sm'>
-                                <FaFacebook />
-                                <span>Facebook</span>
-                            </button>
-                        </div>
                     </form>
                 </div>
             </div>

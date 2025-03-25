@@ -173,8 +173,8 @@ export const cashFlowReducer = createSlice({
             })
             .addCase(get_revenue_details.fulfilled, (state, { payload }) => {
                 state.loading = false;
-                state.revenueData = payload.revenueData;
-                state.totalRevenue = payload.totalRevenue;
+                state.revenueData = payload.revenueData || [];
+                state.totalRevenue = payload.totalRevenue || 0;
             })
             .addCase(get_revenue_details.rejected, (state, { payload }) => {
                 state.loading = false;
@@ -187,8 +187,8 @@ export const cashFlowReducer = createSlice({
             })
             .addCase(get_cost_details.fulfilled, (state, { payload }) => {
                 state.loading = false;
-                state.costData = payload.costData;
-                state.totalCost = payload.totalCost;
+                state.costData = payload.costData || [];
+                state.totalCost = payload.totalCost || 0;
             })
             .addCase(get_cost_details.rejected, (state, { payload }) => {
                 state.loading = false;

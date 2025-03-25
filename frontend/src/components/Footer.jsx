@@ -104,7 +104,7 @@ const Footer = () => {
             </div>
 
             <div className='w-[90%] flex flex-wrap justify-center items-center text-slate-600 mx-auto py-5 text-center'>
-                <span>Copiright @ 2024 All Rights Reserved </span>
+                <span>Copiright @ 2025 All Rights Reserved </span>
             </div>
 
 

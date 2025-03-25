@@ -107,7 +107,7 @@ exports.getCashFlowOverview = async (req, res) => {
  */
 exports.getRevenueDetails = async (req, res) => {
     try {
-        const { startDate, endDate, groupBy = 'product' } = req.query;
+        const { startDate, endDate, groupBy = 'date' } = req.query;
         
         // Validate date inputs
         const start = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 30));
@@ -141,7 +141,37 @@ exports.getRevenueDetails = async (req, res) => {
         // Process data based on grouping parameter
         let revenueData = [];
         
-        if (groupBy === 'product') {
+        if (groupBy === 'date') {
+            // Nhóm doanh thu theo ngày
+            const dateMap = new Map();
+            
+            orders.forEach(order => {
+                const orderDate = new Date(order.createdAt);
+                const dateStr = orderDate.toISOString().split('T')[0]; // Format YYYY-MM-DD
+                
+                if (dateMap.has(dateStr)) {
+                    const dateData = dateMap.get(dateStr);
+                    dateData.revenue += order.totalPrice;
+                    dateData.orderCount += 1;
+                } else {
+                    dateMap.set(dateStr, {
+                        date: dateStr,
+                        revenue: order.totalPrice,
+                        orderCount: 1
+                    });
+                }
+            });
+            
+            // Chuyển đổi Map thành mảng và định dạng giá trị
+            revenueData = Array.from(dateMap.values()).map(item => ({
+                date: item.date,
+                revenue: formatAmountDecimal(item.revenue),
+                orderCount: item.orderCount
+            }));
+            
+            // Sắp xếp theo ngày (mới nhất trước)
+            revenueData.sort((a, b) => new Date(b.date) - new Date(a.date));
+        } else if (groupBy === 'product') {
             revenueData = await groupRevenueByProduct(orders);
         } else if (groupBy === 'category') {
             revenueData = await groupRevenueByCategory(orders);
@@ -206,7 +236,41 @@ exports.getCostDetails = async (req, res) => {
         let costData = [];
         
         if (groupBy === 'product') {
-            costData = await groupCostByProduct(orders);
+            // Đảm bảo costData có cấu trúc đúng cho frontend
+            const productMap = new Map();
+            
+            orders.forEach(order => {
+                order.products.forEach(item => {
+                    if (item.productId && item.productId.costPrice) {
+                        const productId = item.productId._id.toString();
+                        const cost = item.quantity * item.productId.costPrice;
+                        
+                        if (productMap.has(productId)) {
+                            const product = productMap.get(productId);
+                            product.cost += cost;
+                            product.quantity += item.quantity;
+                        } else {
+                            productMap.set(productId, {
+                                id: productId,
+                                name: item.productId.name,
+                                cost,
+                                quantity: item.quantity
+                            });
+                        }
+                    }
+                });
+            });
+            
+            // Chuyển đổi Map thành mảng và định dạng giá trị
+            costData = Array.from(productMap.values()).map(product => ({
+                id: product.id,
+                name: product.name,
+                cost: formatAmountDecimal(product.cost),
+                quantity: product.quantity
+            }));
+            
+            // Sắp xếp theo chi phí (cao nhất trước)
+            costData.sort((a, b) => parseFloat(b.cost) - parseFloat(a.cost));
         } else if (groupBy === 'category') {
             costData = await groupCostByCategory(orders);
         } else if (groupBy === 'seller') {

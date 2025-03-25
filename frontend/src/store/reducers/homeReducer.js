@@ -27,26 +27,11 @@ export const get_products = createAsyncThunk(
                 perPage = 10,
                 searchValue = '',
                 categoryId = '',
-                minPrice = 0,
-                maxPrice = 100,
-                minDiscount = 0,
                 sortBy = 'createdAt',
                 sortOrder = 'desc',
-                rating = 0
             } = filters || {};
 
-            const { data } = await api.get('/products-get', {
-                page,
-                perPage,
-                searchValue,
-                categoryId,
-                minPrice,
-                maxPrice,
-                minDiscount,
-                sortBy,
-                sortOrder,
-                rating
-            });
+            const { data } = await api.get(`/products-get?page=${page}&perPage=${perPage}&searchValue=${searchValue}&categoryId=${categoryId}&sortBy=${sortBy}&sortOrder=${sortOrder}`);
 
             console.log('API Response:', data); // Check the API response
             return fulfillWithValue(data);
@@ -198,10 +183,13 @@ export const homeReducer = createSlice({
             state.error = payload;
         })
         .addCase(get_products.fulfilled, (state, { payload }) => {
+            console.log('payload', payload);
+            
             state.products = payload.products;
-            state.latest_product = payload.latest_product;
-            state.topRated_product = payload.topRated_product;
-            state.discount_product = payload.discount_product;
+            state.totalProducts = payload.totalProduts;
+            state.perPage = payload.perPage; 
+            state.pages = payload.pages;
+            state.currentPage = payload.currentPage;
         })
         .addCase(price_range_product.fulfilled, (state, { payload }) => { 
             state.latest_product = payload.latest_product;

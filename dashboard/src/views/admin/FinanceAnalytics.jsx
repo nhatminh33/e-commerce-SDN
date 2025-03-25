@@ -26,9 +26,10 @@ import {
   messageClear
 } from '../../store/Reducers/cashFlowReducer';
 import moment from 'moment';
+import { FaDollarSign, FaMoneyBillWave, FaChartLine, FaPercentage } from 'react-icons/fa';
 
 // Color configuration
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+const COLORS = ['#f472b6', '#ec4899', '#db2777', '#be185d', '#9d174d', '#831843'];
 
 // Tab panel component
 function TabPanel(props) {
@@ -94,8 +95,20 @@ const FinanceAnalytics = () => {
     period: 'daily',
     sortBy: 'profit',
     order: 'desc',
-    page: 0,
-    rowsPerPage: 10
+  });
+  
+  // State for pagination
+  const [pagination, setPagination] = useState({
+    revenuePage: 0,
+    revenueRowsPerPage: 10,
+    costPage: 0,
+    costRowsPerPage: 10,
+    productPage: 0,
+    productRowsPerPage: 10,
+    categoryPage: 0,
+    categoryRowsPerPage: 10,
+    sellerPage: 0,
+    sellerRowsPerPage: 10
   });
   
   // State for main tabs and subtabs
@@ -114,10 +127,43 @@ const FinanceAnalytics = () => {
     severity: 'info'
   });
   
+  // State for data sorting
+  const [sorting, setSorting] = useState({
+    revenue: {
+      field: 'date',
+      order: 'desc'
+    },
+    cost: {
+      field: 'cost',
+      order: 'desc'
+    },
+    product: {
+      field: 'profit',
+      order: 'desc'
+    },
+    category: {
+      field: 'profit',
+      order: 'desc'
+    },
+    seller: {
+      field: 'profit',
+      order: 'desc'
+    }
+  });
+  
   // Fetch data on initial load and when filters change
   useEffect(() => {
     fetchAllData();
   }, [filters.startDate, filters.endDate, filters.period]);
+  
+  // Add debugging logs
+  useEffect(() => {
+    console.log('Revenue Data:', revenueData);
+    console.log('Cost Data:', costData);
+    console.log('Loading:', loading);
+    console.log('Error:', error);
+    console.log('Cash Flow Data:', cashFlowData);
+  }, [revenueData, costData, loading, error, cashFlowData]);
   
   // Handle success and error messages
   useEffect(() => {
@@ -145,8 +191,14 @@ const FinanceAnalytics = () => {
   const fetchAllData = async () => {
     // Cash Flow data
     dispatch(get_cash_flow_overview(filters));
-    dispatch(get_revenue_details(filters));
-    dispatch(get_cost_details(filters));
+    dispatch(get_revenue_details({
+      ...filters,
+      groupBy: 'date'  // Ensure groupBy is 'date' to get date, revenue, orderCount data
+    }));
+    dispatch(get_cost_details({
+      ...filters,
+      groupBy: 'product'  // Ensure groupBy is 'product' to get product, cost, quantity data
+    }));
     
     // Profit Analysis data
     dispatch(get_profit_details({
@@ -184,7 +236,6 @@ const FinanceAnalytics = () => {
     setFilters({
       ...filters,
       [field]: event.target.value,
-      page: field !== 'page' && field !== 'rowsPerPage' ? 0 : filters.page
     });
   };
   
@@ -192,15 +243,19 @@ const FinanceAnalytics = () => {
     fetchAllData();
   };
   
-  const handleChangePage = (event, newPage) => {
-    setFilters({ ...filters, page: newPage });
+  // Xử lý phân trang cho từng loại bảng dữ liệu
+  const handleChangePage = (type, newPage) => {
+    setPagination({
+      ...pagination,
+      [`${type}Page`]: newPage
+    });
   };
   
-  const handleChangeRowsPerPage = (event) => {
-    setFilters({
-      ...filters,
-      rowsPerPage: parseInt(event.target.value, 10),
-      page: 0
+  const handleChangeRowsPerPage = (type, event) => {
+    setPagination({
+      ...pagination,
+      [`${type}Page`]: 0,
+      [`${type}RowsPerPage`]: parseInt(event.target.value, 10)
     });
   };
   
@@ -237,6 +292,45 @@ const FinanceAnalytics = () => {
     setEditingProduct(null);
   };
   
+  // Hàm xử lý sắp xếp
+  const handleSort = (type, field) => {
+    setSorting({
+      ...sorting,
+      [type]: {
+        field,
+        order: sorting[type].field === field && sorting[type].order === 'asc' ? 'desc' : 'asc'
+      }
+    });
+  };
+  
+  // Hàm sắp xếp dữ liệu
+  const sortData = (data, type) => {
+    const { field, order } = sorting[type];
+    
+    if (!data || data.length === 0) return [];
+    
+    return [...data].sort((a, b) => {
+      let valueA = a[field];
+      let valueB = b[field];
+      
+      // Xử lý giá trị là chuỗi
+      if (typeof valueA === 'string' && typeof valueB === 'string') {
+        valueA = valueA.toLowerCase();
+        valueB = valueB.toLowerCase();
+      }
+      
+      // Để xử lý null hoặc undefined
+      if (valueA === undefined) valueA = '';
+      if (valueB === undefined) valueB = '';
+      
+      if (order === 'asc') {
+        return valueA < valueB ? -1 : valueA > valueB ? 1 : 0;
+      } else {
+        return valueA > valueB ? -1 : valueA < valueB ? 1 : 0;
+      }
+    });
+  };
+  
   // Helper functions
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -249,14 +343,20 @@ const FinanceAnalytics = () => {
     return `${parseFloat(value).toFixed(2)}%`;
   };
   
+  const getDateRangeText = () => {
+    const startDateFormatted = moment(filters.startDate).format('DD/MM/YYYY');
+    const endDateFormatted = moment(filters.endDate).format('DD/MM/YYYY');
+    return `${startDateFormatted} - ${endDateFormatted}`;
+  };
+  
   // Chart data getters
   const getCashFlowChartData = () => {
-    if (!cashFlowData.timeSeriesData) return [];
+    if (!cashFlowData || !cashFlowData.timeSeriesData || !Array.isArray(cashFlowData.timeSeriesData)) return [];
     return cashFlowData.timeSeriesData.map(item => ({
       date: item.date,
-      revenue: item.revenue,
-      cost: item.cost,
-      profit: item.profit
+      revenue: item.revenue || 0,
+      cost: item.cost || 0,
+      profit: item.profit || 0
     }));
   };
   
@@ -277,7 +377,7 @@ const FinanceAnalytics = () => {
               <YAxis />
               <RechartsTooltip formatter={(value) => formatCurrency(value)} />
               <Legend />
-              <Bar dataKey="profit" name="Profit" fill="#8884d8" />
+              <Bar dataKey="profit" name="Profit" fill="#f472b6" />
             </BarChart>
           </ResponsiveContainer>
         );
@@ -331,18 +431,61 @@ const FinanceAnalytics = () => {
       margin: item.margin
     }));
     
-    return (
-      <ResponsiveContainer width="100%" height={400}>
-        <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
-          <YAxis />
-          <RechartsTooltip formatter={(value) => formatCurrency(value)} />
-          <Legend />
-          <Bar dataKey="profit" name="Profit" fill="#00C49F" />
-        </BarChart>
-      </ResponsiveContainer>
-    );
+    switch (chartType) {
+      case 'bar':
+        return (
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <RechartsTooltip formatter={(value) => formatCurrency(value)} />
+              <Legend />
+              <Bar dataKey="profit" name="Profit" fill="#00C49F" />
+            </BarChart>
+          </ResponsiveContainer>
+        );
+      case 'pie':
+        return (
+          <ResponsiveContainer width="100%" height={400}>
+            <PieChart>
+              <Pie
+                data={data}
+                nameKey="name"
+                dataKey="profit"
+                cx="50%"
+                cy="50%"
+                outerRadius={150}
+                fill="#8884d8"
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <RechartsTooltip formatter={(value) => formatCurrency(value)} />
+            </PieChart>
+          </ResponsiveContainer>
+        );
+      case 'scatter':
+        return (
+          <ResponsiveContainer width="100%" height={400}>
+            <ScatterChart margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid />
+              <XAxis type="number" dataKey="profit" name="Profit" unit="$" />
+              <YAxis type="number" dataKey="margin" name="Margin" unit="%" />
+              <ZAxis type="number" range={[100, 500]} />
+              <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} formatter={(value) => {
+                return typeof value === 'number' && value > 1 ? formatCurrency(value) : formatPercentage(value);
+              }} />
+              <Legend />
+              <Scatter name="Categories" data={data} fill="#00C49F" />
+            </ScatterChart>
+          </ResponsiveContainer>
+        );
+      default:
+        return null;
+    }
   };
   
   const getSellerProfitChart = () => {
@@ -352,18 +495,61 @@ const FinanceAnalytics = () => {
       margin: item.margin
     }));
     
-    return (
-      <ResponsiveContainer width="100%" height={400}>
-        <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
-          <YAxis />
-          <RechartsTooltip formatter={(value) => formatCurrency(value)} />
-          <Legend />
-          <Bar dataKey="profit" name="Profit" fill="#FFBB28" />
-        </BarChart>
-      </ResponsiveContainer>
-    );
+    switch (chartType) {
+      case 'bar':
+        return (
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <RechartsTooltip formatter={(value) => formatCurrency(value)} />
+              <Legend />
+              <Bar dataKey="profit" name="Profit" fill="#FFBB28" />
+            </BarChart>
+          </ResponsiveContainer>
+        );
+      case 'pie':
+        return (
+          <ResponsiveContainer width="100%" height={400}>
+            <PieChart>
+              <Pie
+                data={data}
+                nameKey="name"
+                dataKey="profit"
+                cx="50%"
+                cy="50%"
+                outerRadius={150}
+                fill="#8884d8"
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <RechartsTooltip formatter={(value) => formatCurrency(value)} />
+            </PieChart>
+          </ResponsiveContainer>
+        );
+      case 'scatter':
+        return (
+          <ResponsiveContainer width="100%" height={400}>
+            <ScatterChart margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid />
+              <XAxis type="number" dataKey="profit" name="Profit" unit="$" />
+              <YAxis type="number" dataKey="margin" name="Margin" unit="%" />
+              <ZAxis type="number" range={[100, 500]} />
+              <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} formatter={(value) => {
+                return typeof value === 'number' && value > 1 ? formatCurrency(value) : formatPercentage(value);
+              }} />
+              <Legend />
+              <Scatter name="Sellers" data={data} fill="#FFBB28" />
+            </ScatterChart>
+          </ResponsiveContainer>
+        );
+      default:
+        return null;
+    }
   };
   
   // Table columns config
@@ -376,7 +562,7 @@ const FinanceAnalytics = () => {
   const costColumns = [
     { id: 'name', label: 'Product', minWidth: 170 },
     { id: 'cost', label: 'Cost', minWidth: 100, align: 'right', format: (value) => formatCurrency(value) },
-    { id: 'quantity', label: 'Quantity', minWidth: 100, align: 'right' }
+    { id: 'quantity', label: 'Quantity', minWidth: 80, align: 'right' }
   ];
   
   const profitColumns = [
@@ -387,16 +573,26 @@ const FinanceAnalytics = () => {
     { id: 'margin', label: 'Margin', minWidth: 80, align: 'right', format: (value) => formatPercentage(value) }
   ];
   
+  // Hàm kiểm tra dữ liệu trống
+  const isEmptyData = (data) => {
+    return !data || data.length === 0;
+  };
+
+  // Đảm bảo revenueData và costData luôn là mảng
+  const safeRevenueData = Array.isArray(revenueData) ? revenueData : [];
+  const safeCostData = Array.isArray(costData) ? costData : [];
+  
+  // CSS class cho tiêu đề cột có thể sắp xếp
+  const sortableHeaderClass = 'py-3 px-4 cursor-pointer select-none transition-colors hover:bg-pink-100';
+  
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Finance Analytics
-      </Typography>
+    <div className='px-2 md:px-7 py-5'>
+      <h2 className='text-2xl font-bold text-pink-600 mb-4'>Finance Analytics</h2>
       
       {/* Date Range Filters */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={4} md={3}>
+      <div className='w-full bg-white p-4 rounded-md mb-6 shadow-sm'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-center'>
+          <div>
             <TextField
               label="Start Date"
               type="date"
@@ -404,9 +600,10 @@ const FinanceAnalytics = () => {
               value={filters.startDate}
               onChange={handleFilterChange('startDate')}
               InputLabelProps={{ shrink: true }}
+              size="small"
             />
-          </Grid>
-          <Grid item xs={12} sm={4} md={3}>
+          </div>
+          <div>
             <TextField
               label="End Date"
               type="date"
@@ -414,10 +611,11 @@ const FinanceAnalytics = () => {
               value={filters.endDate}
               onChange={handleFilterChange('endDate')}
               InputLabelProps={{ shrink: true }}
+              size="small"
             />
-          </Grid>
-          <Grid item xs={12} sm={4} md={3}>
-            <FormControl fullWidth>
+          </div>
+          <div>
+            <FormControl fullWidth size="small">
               <InputLabel>Time Period</InputLabel>
               <Select
                 value={filters.period}
@@ -429,430 +627,794 @@ const FinanceAnalytics = () => {
                 <MenuItem value="yearly">Yearly</MenuItem>
               </Select>
             </FormControl>
-          </Grid>
-          <Grid item xs={12} md={3}>
+          </div>
+          <div>
             <Button 
               variant="contained" 
               fullWidth
               startIcon={<FilterList />}
               onClick={handleDateFilterChange}
+              className='bg-pink-600 hover:bg-pink-700'
             >
               Apply Filters
             </Button>
-          </Grid>
-        </Grid>
-      </Paper>
+          </div>
+        </div>
+      </div>
       
       {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'primary.main', color: 'white' }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>Total Revenue</Typography>
-              <Typography variant="h4">
-                {formatCurrency(profitData.summary.totalRevenue)}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                <TrendingUp sx={{ mr: 1 }} />
-                <Typography variant="body2">
-                  Revenue in period
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'error.main', color: 'white' }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>Total Cost</Typography>
-              <Typography variant="h4">
-                {formatCurrency(profitData.summary.totalCost)}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                <MonetizationOn sx={{ mr: 1 }} />
-                <Typography variant="body2">
-                  Cost of goods sold
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'success.main', color: 'white' }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>Total Profit</Typography>
-              <Typography variant="h4">
-                {formatCurrency(profitData.summary.totalProfit)}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                <ShowChart sx={{ mr: 1 }} />
-                <Typography variant="body2">
-                  Net profit
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'warning.main', color: 'white' }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>Profit Margin</Typography>
-              <Typography variant="h4">
-                {formatPercentage(profitData.summary.profitMargin)}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                <TimelineOutlined sx={{ mr: 1 }} />
-                <Typography variant="body2">
-                  Profit / Revenue
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        {/* Total Revenue */}
+        <div className="p-4 bg-white rounded-lg shadow-md">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-gray-500 text-sm font-medium">Total Revenue</p>
+              <h4 className="text-2xl font-semibold text-gray-800 mt-1">
+                {formatCurrency(cashFlowData?.summary?.totalRevenue || 0)}
+              </h4>
+            </div>
+            <div className="p-2 rounded-full bg-pink-100 text-pink-500">
+              <FaDollarSign size={20} />
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mt-4">
+            <span>Period: </span>
+            <span className="font-medium">{getDateRangeText()}</span>
+          </p>
+        </div>
+        
+        {/* Total Cost */}
+        <div className="p-4 bg-white rounded-lg shadow-md">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-gray-500 text-sm font-medium">Total Cost</p>
+              <h4 className="text-2xl font-semibold text-gray-800 mt-1">
+                {formatCurrency(cashFlowData?.summary?.totalCost || 0)}
+              </h4>
+            </div>
+            <div className="p-2 rounded-full bg-pink-100 text-pink-500">
+              <FaMoneyBillWave size={20} />
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mt-4">
+            <span>Period: </span>
+            <span className="font-medium">{getDateRangeText()}</span>
+          </p>
+        </div>
+        
+        {/* Total Profit */}
+        <div className="p-4 bg-white rounded-lg shadow-md">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-gray-500 text-sm font-medium">Total Profit</p>
+              <h4 className="text-2xl font-semibold text-gray-800 mt-1">
+                {formatCurrency(cashFlowData?.summary?.totalProfit || 0)}
+              </h4>
+            </div>
+            <div className="p-2 rounded-full bg-pink-100 text-pink-500">
+              <FaChartLine size={20} />
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mt-4">
+            <span>Period: </span>
+            <span className="font-medium">{getDateRangeText()}</span>
+          </p>
+        </div>
+        
+        {/* Profit Margin */}
+        <div className="p-4 bg-white rounded-lg shadow-md">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-gray-500 text-sm font-medium">Profit Margin</p>
+              <h4 className="text-2xl font-semibold text-gray-800 mt-1">
+                {formatPercentage(cashFlowData?.summary?.profitMargin || 0)}
+              </h4>
+            </div>
+            <div className="p-2 rounded-full bg-pink-100 text-pink-500">
+              <FaPercentage size={20} />
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mt-4">
+            <span>Period: </span>
+            <span className="font-medium">{getDateRangeText()}</span>
+          </p>
+        </div>
+      </div>
       
       {/* Main tabs */}
-      <Paper sx={{ mb: 3 }}>
+      <div className='w-full bg-white p-4 rounded-md shadow-sm mb-6'>
         <Tabs
           value={mainTabValue}
           onChange={handleMainTabChange}
-          indicatorColor="primary"
-          textColor="primary"
           variant="fullWidth"
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
+          sx={{
+            '& .MuiTabs-indicator': {
+              backgroundColor: '#ec4899',
+            },
+            '& .MuiTab-root.Mui-selected': {
+              color: '#ec4899',
+            },
+          }}
         >
-          <Tab label="Cash Flow" />
-          <Tab label="Profit Analysis" />
+          <Tab label="Cash Flow Analysis" icon={<TimelineOutlined />} iconPosition="start" className='text-gray-700 font-medium' />
+          <Tab label="Profit Analysis" icon={<ShowChart />} iconPosition="start" className='text-gray-700 font-medium' />
         </Tabs>
-      </Paper>
+      </div>
       
       {/* Tab Panels */}
       <TabPanel value={mainTabValue} index={0}>
-        <Box sx={{ mb: 2 }}>
-          <Paper>
-            <Tabs
-              value={cashFlowTabValue}
-              onChange={handleCashFlowTabChange}
-              indicatorColor="primary"
-              textColor="primary"
-              variant="scrollable"
-              scrollButtons="auto"
-            >
-              <Tab label="Cash Flow Overview" icon={<TimelineOutlined />} />
-              <Tab label="Revenue Details" icon={<TrendingUp />} />
-              <Tab label="Cost Details" icon={<MonetizationOn />} />
-            </Tabs>
+        <div className='w-full bg-white p-4 rounded-md shadow-sm mb-6'>
+          <Tabs
+            value={cashFlowTabValue}
+            onChange={handleCashFlowTabChange}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              '& .MuiTabs-indicator': {
+                backgroundColor: '#ec4899',
+              },
+              '& .MuiTab-root.Mui-selected': {
+                color: '#ec4899',
+              },
+            }}
+          >
+            <Tab label="Cash Flow Overview" icon={<TimelineOutlined />} iconPosition="start" className='text-gray-700' />
+            <Tab label="Revenue Details" icon={<TrendingUp />} iconPosition="start" className='text-gray-700' />
+            <Tab label="Cost Details" icon={<MonetizationOn />} iconPosition="start" className='text-gray-700' />
+          </Tabs>
             
-            {/* Cash Flow Overview Tab */}
+          {/* Cash Flow Overview Tab */}
+          <div className='py-5'>
             <TabPanel value={cashFlowTabValue} index={0}>
-              <Box sx={{ height: 400, mb: 3 }}>
-                <Typography variant="h6" gutterBottom align="center">
-                  Cash Flow Over Time
-                </Typography>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={getCashFlowChartData()}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <RechartsTooltip formatter={(value) => formatCurrency(value)} />
-                    <Legend />
-                    <Line type="monotone" dataKey="revenue" stroke="#0088FE" name="Revenue" />
-                    <Line type="monotone" dataKey="cost" stroke="#FF8042" name="Cost" />
-                    <Line type="monotone" dataKey="profit" stroke="#00C49F" name="Profit" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Box>
+              <div className='w-full bg-white p-4 rounded-md mb-6'>
+                <h2 className='text-xl font-bold text-pink-600 mb-3 border-b border-pink-100 pb-2'>Cash Flow Trends</h2>
+                <div className='h-[400px]'>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={getCashFlowChartData()}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f9a8d4" />
+                      <XAxis dataKey="date" stroke="#374151" />
+                      <YAxis stroke="#374151" />
+                      <RechartsTooltip formatter={(value) => formatCurrency(value)} />
+                      <Legend />
+                      <Line type="monotone" dataKey="revenue" stroke="#ec4899" name="Revenue" strokeWidth={2} />
+                      <Line type="monotone" dataKey="cost" stroke="#8b5cf6" name="Cost" strokeWidth={2} />
+                      <Line type="monotone" dataKey="profit" stroke="#10b981" name="Profit" strokeWidth={2} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             </TabPanel>
             
             {/* Revenue Details Tab */}
             <TabPanel value={cashFlowTabValue} index={1}>
-              <TableContainer component={Paper} sx={{ mb: 3 }}>
-                <Table stickyHeader>
-                  <TableHead>
-                    <TableRow>
-                      {revenueColumns.map((column) => (
-                        <TableCell
-                          key={column.id}
-                          align={column.align}
-                          style={{ minWidth: column.minWidth }}
-                        >
-                          {column.label}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {revenueData
-                      .slice(filters.page * filters.rowsPerPage, filters.page * filters.rowsPerPage + filters.rowsPerPage)
-                      .map((row) => (
-                        <TableRow hover role="checkbox" tabIndex={-1} key={row.date}>
-                          {revenueColumns.map((column) => {
-                            const value = row[column.id];
-                            return (
-                              <TableCell key={column.id} align={column.align}>
-                                {column.format && typeof value === 'number' ? column.format(value) : value}
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-                <TablePagination
-                  rowsPerPageOptions={[10, 25, 100]}
-                  component="div"
-                  count={revenueData.length}
-                  rowsPerPage={filters.rowsPerPage}
-                  page={filters.page}
-                  onPageChange={handleChangePage}
-                  onRowsPerPageChange={handleChangeRowsPerPage}
-                />
-              </TableContainer>
+              <div className='relative overflow-x-auto sm:rounded-lg'>
+                {loading ? (
+                  <div className='w-full py-16 flex justify-center items-center'>
+                    <div className='text-center'>
+                      <CircularProgress className='text-pink-600 mb-2' />
+                      <p className='text-gray-500'>Loading revenue data...</p>
+                    </div>
+                  </div>
+                ) : error ? (
+                  <div className='w-full py-8 text-center'>
+                    <div className='bg-red-50 text-red-600 p-4 rounded-md inline-block'>
+                      <p>Error loading data: {error}</p>
+                      <button 
+                        className='mt-2 bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-md'
+                        onClick={() => dispatch(get_revenue_details({
+                          ...filters,
+                          groupBy: 'date'
+                        }))}
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  </div>
+                ) : isEmptyData(safeRevenueData) ? (
+                  <div className='w-full py-8 text-center'>
+                    <p className='text-gray-500'>No revenue data available for this time period</p>
+                    <button 
+                      className='mt-2 bg-pink-100 hover:bg-pink-200 text-pink-700 px-4 py-2 rounded-md'
+                      onClick={() => dispatch(get_revenue_details({
+                        ...filters,
+                        groupBy: 'date'
+                      }))}
+                    >
+                      Refresh Data
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className='mb-4 flex justify-between items-center'>
+                      <h2 className='text-xl font-bold text-pink-600'>Revenue by Time Period</h2>
+                      <button
+                        className='flex items-center text-pink-600 hover:text-pink-800 transition-colors'
+                        onClick={() => dispatch(get_revenue_details({
+                          ...filters,
+                          groupBy: 'date'
+                        }))}
+                      >
+                        <Refresh className='w-5 h-5 mr-1' />
+                        Refresh
+                      </button>
+                    </div>
+                    
+                    <div className='overflow-x-auto'>
+                      <table className='w-full border-collapse'>
+                        <thead className='text-xs text-gray-700 uppercase bg-pink-50'>
+                          <tr>
+                            {revenueColumns.map((column) => (
+                              <th
+                                key={column.id}
+                                scope='col'
+                                className={sortableHeaderClass}
+                                style={{ minWidth: column.minWidth, textAlign: column.align || 'left' }}
+                                onClick={() => handleSort('revenue', column.id)}
+                              >
+                                <div className="flex items-center justify-between">
+                                  {column.label}
+                                  {sorting.revenue.field === column.id && (
+                                    <span className="ml-1">
+                                      {sorting.revenue.order === 'asc' ? '↑' : '↓'}
+                                    </span>
+                                  )}
+                                </div>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sortData(safeRevenueData, 'revenue')
+                            .slice(
+                              pagination.revenuePage * pagination.revenueRowsPerPage, 
+                              pagination.revenuePage * pagination.revenueRowsPerPage + pagination.revenueRowsPerPage
+                            )
+                            .map((row, i) => (
+                              <tr key={row.date || i} className={`${i % 2 === 0 ? 'bg-white' : 'bg-pink-50'} border-b border-pink-100 hover:bg-pink-100`}>
+                                {revenueColumns.map((column) => {
+                                  const value = row[column.id];
+                                  return (
+                                    <td
+                                      key={column.id}
+                                      className='py-3 px-4 font-medium whitespace-nowrap'
+                                      style={{ textAlign: column.align || 'left' }}
+                                    >
+                                      {column.format && typeof value === 'number' ? column.format(value) : value}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className='py-3 px-4'>
+                      <TablePagination
+                        rowsPerPageOptions={[10, 25, 50]}
+                        component="div"
+                        count={safeRevenueData.length}
+                        rowsPerPage={pagination.revenueRowsPerPage}
+                        page={pagination.revenuePage}
+                        onPageChange={(event, newPage) => handleChangePage('revenue', newPage)}
+                        onRowsPerPageChange={(event) => handleChangeRowsPerPage('revenue', event)}
+                        labelRowsPerPage="Rows per page:"
+                        labelDisplayedRows={({ from, to, count }) => `${from}-${to} of ${count}`}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
             </TabPanel>
             
             {/* Cost Details Tab */}
             <TabPanel value={cashFlowTabValue} index={2}>
-              <TableContainer component={Paper} sx={{ mb: 3 }}>
-                <Table stickyHeader>
-                  <TableHead>
-                    <TableRow>
-                      {costColumns.map((column) => (
-                        <TableCell
-                          key={column.id}
-                          align={column.align}
-                          style={{ minWidth: column.minWidth }}
-                        >
-                          {column.label}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {costData
-                      .slice(filters.page * filters.rowsPerPage, filters.page * filters.rowsPerPage + filters.rowsPerPage)
-                      .map((row) => (
-                        <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
-                          {costColumns.map((column) => {
-                            const value = row[column.id];
-                            return (
-                              <TableCell key={column.id} align={column.align}>
-                                {column.format && typeof value === 'number' ? column.format(value) : value}
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-                <TablePagination
-                  rowsPerPageOptions={[10, 25, 100]}
-                  component="div"
-                  count={costData.length}
-                  rowsPerPage={filters.rowsPerPage}
-                  page={filters.page}
-                  onPageChange={handleChangePage}
-                  onRowsPerPageChange={handleChangeRowsPerPage}
-                />
-              </TableContainer>
+              <div className='relative overflow-x-auto sm:rounded-lg'>
+                {loading ? (
+                  <div className='w-full py-16 flex justify-center items-center'>
+                    <div className='text-center'>
+                      <CircularProgress className='text-pink-600 mb-2' />
+                      <p className='text-gray-500'>Loading cost data...</p>
+                    </div>
+                  </div>
+                ) : error ? (
+                  <div className='w-full py-8 text-center'>
+                    <div className='bg-red-50 text-red-600 p-4 rounded-md inline-block'>
+                      <p>Error loading data: {error}</p>
+                      <button 
+                        className='mt-2 bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-md'
+                        onClick={() => dispatch(get_cost_details({
+                          ...filters,
+                          groupBy: 'product'
+                        }))}
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  </div>
+                ) : isEmptyData(safeCostData) ? (
+                  <div className='w-full py-8 text-center'>
+                    <p className='text-gray-500'>No cost data available for this time period</p>
+                    <button 
+                      className='mt-2 bg-pink-100 hover:bg-pink-200 text-pink-700 px-4 py-2 rounded-md'
+                      onClick={() => dispatch(get_cost_details({
+                        ...filters,
+                        groupBy: 'product'
+                      }))}
+                    >
+                      Refresh Data
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className='mb-4 flex justify-between items-center'>
+                      <h2 className='text-xl font-bold text-pink-600'>Product Cost Details</h2>
+                      <button
+                        className='flex items-center text-pink-600 hover:text-pink-800 transition-colors'
+                        onClick={() => dispatch(get_cost_details({
+                          ...filters,
+                          groupBy: 'product'
+                        }))}
+                      >
+                        <Refresh className='w-5 h-5 mr-1' />
+                        Refresh
+                      </button>
+                    </div>
+                    
+                    <div className='overflow-x-auto'>
+                      <table className='w-full border-collapse'>
+                        <thead className='text-xs text-gray-700 uppercase bg-pink-50'>
+                          <tr>
+                            {costColumns.map((column) => (
+                              <th
+                                key={column.id}
+                                scope='col'
+                                className={sortableHeaderClass}
+                                style={{ minWidth: column.minWidth, textAlign: column.align || 'left' }}
+                                onClick={() => handleSort('cost', column.id)}
+                              >
+                                <div className="flex items-center justify-between">
+                                  {column.label}
+                                  {sorting.cost.field === column.id && (
+                                    <span className="ml-1">
+                                      {sorting.cost.order === 'asc' ? '↑' : '↓'}
+                                    </span>
+                                  )}
+                                </div>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sortData(safeCostData, 'cost')
+                            .slice(
+                              pagination.costPage * pagination.costRowsPerPage, 
+                              pagination.costPage * pagination.costRowsPerPage + pagination.costRowsPerPage
+                            )
+                            .map((row, i) => (
+                              <tr key={row.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-pink-50'} border-b border-pink-100 hover:bg-pink-100`}>
+                                {costColumns.map((column) => {
+                                  const value = row[column.id];
+                                  return (
+                                    <td
+                                      key={column.id}
+                                      className='py-3 px-4 font-medium whitespace-nowrap'
+                                      style={{ textAlign: column.align || 'left' }}
+                                    >
+                                      {column.format && typeof value === 'number' ? column.format(value) : value}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className='py-3 px-4'>
+                      <TablePagination
+                        rowsPerPageOptions={[10, 25, 50]}
+                        component="div"
+                        count={safeCostData.length}
+                        rowsPerPage={pagination.costRowsPerPage}
+                        page={pagination.costPage}
+                        onPageChange={(event, newPage) => handleChangePage('cost', newPage)}
+                        onRowsPerPageChange={(event) => handleChangeRowsPerPage('cost', event)}
+                        labelRowsPerPage="Rows per page:"
+                        labelDisplayedRows={({ from, to, count }) => `${from}-${to} of ${count}`}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
             </TabPanel>
-          </Paper>
-        </Box>
+          </div>
+        </div>
       </TabPanel>
       
       {/* Profit Analysis Tab */}
       <TabPanel value={mainTabValue} index={1}>
-        <Box sx={{ mb: 2 }}>
-          <Paper>
-            <Tabs
-              value={profitTabValue}
-              onChange={handleProfitTabChange}
-              indicatorColor="primary"
-              textColor="primary"
-              variant="scrollable"
-              scrollButtons="auto"
+        <div className='w-full bg-white p-4 rounded-md shadow-sm mb-6'>
+          <Tabs
+            value={profitTabValue}
+            onChange={handleProfitTabChange}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              '& .MuiTabs-indicator': {
+                backgroundColor: '#ec4899',
+              },
+              '& .MuiTab-root.Mui-selected': {
+                color: '#ec4899',
+              },
+            }}
+          >
+            <Tab label="By Product" icon={<PieChartOutlined />} iconPosition="start" className='text-gray-700' />
+            <Tab label="By Category" icon={<PieChartOutlined />} iconPosition="start" className='text-gray-700' />
+            <Tab label="By Seller" icon={<PieChartOutlined />} iconPosition="start" className='text-gray-700' />
+          </Tabs>
+          
+          <div className='flex justify-end space-x-2 my-4'>
+            <button 
+              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${chartType === 'bar' ? 'bg-pink-600 text-white' : 'bg-white text-pink-600 border border-pink-600'}`}
+              onClick={() => handleChartTypeChange('bar')}
             >
-              <Tab label="By Product" />
-              <Tab label="By Category" />
-              <Tab label="By Seller" />
-            </Tabs>
-            
-            {/* Chart Type Selection */}
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 2 }}>
-              <Button 
-                variant={chartType === 'bar' ? 'contained' : 'outlined'} 
-                size="small"
-                sx={{ mr: 1 }}
-                onClick={() => handleChartTypeChange('bar')}
-              >
-                Bar Chart
-              </Button>
-              <Button 
-                variant={chartType === 'pie' ? 'contained' : 'outlined'} 
-                size="small"
-                onClick={() => handleChartTypeChange('pie')}
-              >
-                Pie Chart
-              </Button>
-            </Box>
-            
+              Bar Chart
+            </button>
+            <button 
+              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${chartType === 'pie' ? 'bg-pink-600 text-white' : 'bg-white text-pink-600 border border-pink-600'}`}
+              onClick={() => handleChartTypeChange('pie')}
+            >
+              Pie Chart
+            </button>
+            {/* <button 
+              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${chartType === 'scatter' ? 'bg-pink-600 text-white' : 'bg-white text-pink-600 border border-pink-600'}`}
+              onClick={() => handleChartTypeChange('scatter')}
+            >
+              Scatter Chart
+            </button> */}
+          </div>
+          
+          <div className='py-5'>
             {/* By Product Tab */}
             <TabPanel value={profitTabValue} index={0}>
-              {getProductProfitChart()}
-              
-              <TableContainer component={Paper} sx={{ mt: 3 }}>
-                <Table stickyHeader>
-                  <TableHead>
-                    <TableRow>
-                      {profitColumns.map((column) => (
-                        <TableCell
-                          key={column.id}
-                          align={column.align}
-                          style={{ minWidth: column.minWidth }}
-                        >
-                          {column.label}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {productProfitData
-                      .slice(filters.page * filters.rowsPerPage, filters.page * filters.rowsPerPage + filters.rowsPerPage)
-                      .map((row) => (
-                        <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
-                          {profitColumns.map((column) => {
-                            const value = row[column.id];
-                            return (
-                              <TableCell key={column.id} align={column.align}>
-                                {column.format && typeof value === 'number' ? column.format(value) : value}
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-                <TablePagination
-                  rowsPerPageOptions={[10, 25, 100]}
-                  component="div"
-                  count={productProfitData.length}
-                  rowsPerPage={filters.rowsPerPage}
-                  page={filters.page}
-                  onPageChange={handleChangePage}
-                  onRowsPerPageChange={handleChangeRowsPerPage}
-                />
-              </TableContainer>
+              {loading ? (
+                <div className='w-full py-16 flex justify-center items-center'>
+                  <div className='text-center'>
+                    <CircularProgress className='text-pink-600 mb-2' />
+                    <p className='text-gray-500'>Loading product profit data...</p>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className='w-full py-8 text-center'>
+                  <div className='bg-red-50 text-red-600 p-4 rounded-md inline-block'>
+                    <p>Error loading data: {error}</p>
+                    <button 
+                      className='mt-2 bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-md'
+                      onClick={() => dispatch(get_profit_details({ ...filters, groupBy: 'product' }))}
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              ) : isEmptyData(productProfitData) ? (
+                <div className='w-full py-8 text-center'>
+                  <p className='text-gray-500'>No product profit data available for this time period</p>
+                </div>
+              ) : (
+                <>
+                  <div className='w-full bg-white p-4 rounded-md mb-6'>
+                    <div className='mb-4 flex justify-between items-center'>
+                      <h2 className='text-xl font-bold text-pink-600 border-b border-pink-100 pb-2'>Product Profit Analysis</h2>
+                      <button
+                        className='flex items-center text-pink-600 hover:text-pink-800 transition-colors'
+                        onClick={() => dispatch(get_profit_details({ ...filters, groupBy: 'product' }))}
+                      >
+                        <Refresh className='w-5 h-5 mr-1' />
+                        Refresh
+                      </button>
+                    </div>
+                    <div className='h-[400px] mb-4'>
+                      {getProductProfitChart()}
+                    </div>
+                  </div>
+                  
+                  <div className='relative overflow-x-auto sm:rounded-lg'>
+                    <table className='w-full text-sm text-left text-gray-700'>
+                      <thead className='text-xs text-gray-700 uppercase bg-pink-50'>
+                        <tr>
+                          {profitColumns.map((column) => (
+                            <th
+                              key={column.id}
+                              scope='col'
+                              className={sortableHeaderClass}
+                              style={{ textAlign: column.align || 'left' }}
+                              onClick={() => handleSort('product', column.id)}
+                            >
+                              <div className="flex items-center justify-between">
+                                {column.label}
+                                {sorting.product.field === column.id && (
+                                  <span className="ml-1">
+                                    {sorting.product.order === 'asc' ? '↑' : '↓'}
+                                  </span>
+                                )}
+                              </div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sortData(productProfitData, 'product')
+                          .slice(
+                            pagination.productPage * pagination.productRowsPerPage, 
+                            pagination.productPage * pagination.productRowsPerPage + pagination.productRowsPerPage
+                          )
+                          .map((row, i) => (
+                            <tr key={row.id} className={`${i % 2 === 0 ? 'bg-white' : 'bg-pink-50'} border-b border-pink-100 hover:bg-pink-100`}>
+                              {profitColumns.map((column) => {
+                                const value = row[column.id];
+                                return (
+                                  <td
+                                    key={column.id}
+                                    className='py-3 px-4 font-medium whitespace-nowrap'
+                                    style={{ textAlign: column.align || 'left' }}
+                                  >
+                                    {column.format && typeof value === 'number' ? column.format(value) : value}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                    <div className='py-3 px-4'>
+                      <TablePagination
+                        rowsPerPageOptions={[10, 25, 50]}
+                        component="div"
+                        count={productProfitData.length}
+                        rowsPerPage={pagination.productRowsPerPage}
+                        page={pagination.productPage}
+                        onPageChange={(event, newPage) => handleChangePage('product', newPage)}
+                        onRowsPerPageChange={(event) => handleChangeRowsPerPage('product', event)}
+                        labelRowsPerPage="Rows per page:"
+                        labelDisplayedRows={({ from, to, count }) => `${from}-${to} of ${count}`}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </TabPanel>
             
             {/* By Category Tab */}
             <TabPanel value={profitTabValue} index={1}>
-              {getCategoryProfitChart()}
-              
-              <TableContainer component={Paper} sx={{ mt: 3 }}>
-                <Table stickyHeader>
-                  <TableHead>
-                    <TableRow>
-                      {profitColumns.map((column) => (
-                        <TableCell
-                          key={column.id}
-                          align={column.align}
-                          style={{ minWidth: column.minWidth }}
-                        >
-                          {column.label}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {categoryProfitData
-                      .slice(filters.page * filters.rowsPerPage, filters.page * filters.rowsPerPage + filters.rowsPerPage)
-                      .map((row) => (
-                        <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
-                          {profitColumns.map((column) => {
-                            const value = row[column.id];
-                            return (
-                              <TableCell key={column.id} align={column.align}>
-                                {column.format && typeof value === 'number' ? column.format(value) : value}
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-                <TablePagination
-                  rowsPerPageOptions={[10, 25, 100]}
-                  component="div"
-                  count={categoryProfitData.length}
-                  rowsPerPage={filters.rowsPerPage}
-                  page={filters.page}
-                  onPageChange={handleChangePage}
-                  onRowsPerPageChange={handleChangeRowsPerPage}
-                />
-              </TableContainer>
+              {loading ? (
+                <div className='w-full py-16 flex justify-center items-center'>
+                  <div className='text-center'>
+                    <CircularProgress className='text-pink-600 mb-2' />
+                    <p className='text-gray-500'>Loading category profit data...</p>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className='w-full py-8 text-center'>
+                  <div className='bg-red-50 text-red-600 p-4 rounded-md inline-block'>
+                    <p>Error loading data: {error}</p>
+                    <button 
+                      className='mt-2 bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-md'
+                      onClick={() => dispatch(get_profit_details({ ...filters, groupBy: 'category' }))}
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              ) : isEmptyData(categoryProfitData) ? (
+                <div className='w-full py-8 text-center'>
+                  <p className='text-gray-500'>No category profit data available for this time period</p>
+                </div>
+              ) : (
+                <>
+                  <div className='w-full bg-white p-4 rounded-md mb-6'>
+                    <div className='mb-4 flex justify-between items-center'>
+                      <h2 className='text-xl font-bold text-pink-600 border-b border-pink-100 pb-2'>Category Profit Analysis</h2>
+                      <button
+                        className='flex items-center text-pink-600 hover:text-pink-800 transition-colors'
+                        onClick={() => dispatch(get_profit_details({ ...filters, groupBy: 'category' }))}
+                      >
+                        <Refresh className='w-5 h-5 mr-1' />
+                        Refresh
+                      </button>
+                    </div>
+                    <div className='h-[400px] mb-4'>
+                      {getCategoryProfitChart()}
+                    </div>
+                  </div>
+                  
+                  <div className='relative overflow-x-auto sm:rounded-lg'>
+                    <table className='w-full text-sm text-left text-gray-700'>
+                      <thead className='text-xs text-gray-700 uppercase bg-pink-50'>
+                        <tr>
+                          {profitColumns.map((column) => (
+                            <th
+                              key={column.id}
+                              scope='col'
+                              className={sortableHeaderClass}
+                              style={{ textAlign: column.align || 'left' }}
+                              onClick={() => handleSort('category', column.id)}
+                            >
+                              <div className="flex items-center justify-between">
+                                {column.label}
+                                {sorting.category.field === column.id && (
+                                  <span className="ml-1">
+                                    {sorting.category.order === 'asc' ? '↑' : '↓'}
+                                  </span>
+                                )}
+                              </div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sortData(categoryProfitData, 'category')
+                          .slice(
+                            pagination.categoryPage * pagination.categoryRowsPerPage, 
+                            pagination.categoryPage * pagination.categoryRowsPerPage + pagination.categoryRowsPerPage
+                          )
+                          .map((row, i) => (
+                            <tr key={row.id || i} className={`${i % 2 === 0 ? 'bg-white' : 'bg-pink-50'} border-b border-pink-100 hover:bg-pink-100`}>
+                              {profitColumns.map((column) => {
+                                const value = row[column.id];
+                                return (
+                                  <td
+                                    key={column.id}
+                                    className='py-3 px-4 font-medium whitespace-nowrap'
+                                    style={{ textAlign: column.align || 'left' }}
+                                  >
+                                    {column.format && typeof value === 'number' ? column.format(value) : value}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                    <div className='py-3 px-4'>
+                      <TablePagination
+                        rowsPerPageOptions={[10, 25, 50]}
+                        component="div"
+                        count={categoryProfitData.length}
+                        rowsPerPage={pagination.categoryRowsPerPage}
+                        page={pagination.categoryPage}
+                        onPageChange={(event, newPage) => handleChangePage('category', newPage)}
+                        onRowsPerPageChange={(event) => handleChangeRowsPerPage('category', event)}
+                        labelRowsPerPage="Rows per page:"
+                        labelDisplayedRows={({ from, to, count }) => `${from}-${to} of ${count}`}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </TabPanel>
             
             {/* By Seller Tab */}
             <TabPanel value={profitTabValue} index={2}>
-              {getSellerProfitChart()}
-              
-              <TableContainer component={Paper} sx={{ mt: 3 }}>
-                <Table stickyHeader>
-                  <TableHead>
-                    <TableRow>
-                      {profitColumns.map((column) => (
-                        <TableCell
-                          key={column.id}
-                          align={column.align}
-                          style={{ minWidth: column.minWidth }}
-                        >
-                          {column.label}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {sellerProfitData
-                      .slice(filters.page * filters.rowsPerPage, filters.page * filters.rowsPerPage + filters.rowsPerPage)
-                      .map((row) => (
-                        <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
-                          {profitColumns.map((column) => {
-                            const value = row[column.id];
-                            return (
-                              <TableCell key={column.id} align={column.align}>
-                                {column.format && typeof value === 'number' ? column.format(value) : value}
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-                <TablePagination
-                  rowsPerPageOptions={[10, 25, 100]}
-                  component="div"
-                  count={sellerProfitData.length}
-                  rowsPerPage={filters.rowsPerPage}
-                  page={filters.page}
-                  onPageChange={handleChangePage}
-                  onRowsPerPageChange={handleChangeRowsPerPage}
-                />
-              </TableContainer>
+              {loading ? (
+                <div className='w-full py-16 flex justify-center items-center'>
+                  <div className='text-center'>
+                    <CircularProgress className='text-pink-600 mb-2' />
+                    <p className='text-gray-500'>Loading seller profit data...</p>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className='w-full py-8 text-center'>
+                  <div className='bg-red-50 text-red-600 p-4 rounded-md inline-block'>
+                    <p>Error loading data: {error}</p>
+                    <button 
+                      className='mt-2 bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-md'
+                      onClick={() => dispatch(get_profit_details({ ...filters, groupBy: 'seller' }))}
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              ) : isEmptyData(sellerProfitData) ? (
+                <div className='w-full py-8 text-center'>
+                  <p className='text-gray-500'>No seller profit data available for this time period</p>
+                </div>
+              ) : (
+                <>
+                  <div className='w-full bg-white p-4 rounded-md mb-6'>
+                    <div className='mb-4 flex justify-between items-center'>
+                      <h2 className='text-xl font-bold text-pink-600 border-b border-pink-100 pb-2'>Seller Profit Analysis</h2>
+                      <button
+                        className='flex items-center text-pink-600 hover:text-pink-800 transition-colors'
+                        onClick={() => dispatch(get_profit_details({ ...filters, groupBy: 'seller' }))}
+                      >
+                        <Refresh className='w-5 h-5 mr-1' />
+                        Refresh
+                      </button>
+                    </div>
+                    <div className='h-[400px] mb-4'>
+                      {getSellerProfitChart()}
+                    </div>
+                  </div>
+                  
+                  <div className='relative overflow-x-auto sm:rounded-lg'>
+                    <table className='w-full text-sm text-left text-gray-700'>
+                      <thead className='text-xs text-gray-700 uppercase bg-pink-50'>
+                        <tr>
+                          {profitColumns.map((column) => (
+                            <th
+                              key={column.id}
+                              scope='col'
+                              className={sortableHeaderClass}
+                              style={{ textAlign: column.align || 'left' }}
+                              onClick={() => handleSort('seller', column.id)}
+                            >
+                              <div className="flex items-center justify-between">
+                                {column.label}
+                                {sorting.seller.field === column.id && (
+                                  <span className="ml-1">
+                                    {sorting.seller.order === 'asc' ? '↑' : '↓'}
+                                  </span>
+                                )}
+                              </div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sortData(sellerProfitData, 'seller')
+                          .slice(
+                            pagination.sellerPage * pagination.sellerRowsPerPage, 
+                            pagination.sellerPage * pagination.sellerRowsPerPage + pagination.sellerRowsPerPage
+                          )
+                          .map((row, i) => (
+                            <tr key={row.id || i} className={`${i % 2 === 0 ? 'bg-white' : 'bg-pink-50'} border-b border-pink-100 hover:bg-pink-100`}>
+                              {profitColumns.map((column) => {
+                                const value = row[column.id];
+                                return (
+                                  <td
+                                    key={column.id}
+                                    className='py-3 px-4 font-medium whitespace-nowrap'
+                                    style={{ textAlign: column.align || 'left' }}
+                                  >
+                                    {column.format && typeof value === 'number' ? column.format(value) : value}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                    <div className='py-3 px-4'>
+                      <TablePagination
+                        rowsPerPageOptions={[10, 25, 50]}
+                        component="div"
+                        count={sellerProfitData.length}
+                        rowsPerPage={pagination.sellerRowsPerPage}
+                        page={pagination.sellerPage}
+                        onPageChange={(event, newPage) => handleChangePage('seller', newPage)}
+                        onRowsPerPageChange={(event) => handleChangeRowsPerPage('seller', event)}
+                        labelRowsPerPage="Rows per page:"
+                        labelDisplayedRows={({ from, to, count }) => `${from}-${to} of ${count}`}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </TabPanel>
-          </Paper>
-        </Box>
+          </div>
+        </div>
       </TabPanel>
       
       {/* Dialog for editing product cost */}
       {editingProduct && (
         <Dialog open onClose={handleCancelEdit} maxWidth="sm" fullWidth>
-          <DialogTitle>
-            Edit Cost Price: {editingProduct.name}
+          <DialogTitle className='bg-pink-50 border-b border-pink-100'>
+            <h2 className='text-xl font-bold text-gray-800'>Edit Cost Price: {editingProduct.name}</h2>
           </DialogTitle>
           <DialogContent>
-            <Box sx={{ mt: 2 }}>
+            <div className='mt-4'>
               <TextField
                 label="Current Cost Price"
                 value={editingProduct.currentCost}
@@ -875,16 +1437,18 @@ const FinanceAnalytics = () => {
                   startAdornment: <InputAdornment position="start">$</InputAdornment>,
                 }}
               />
-            </Box>
+            </div>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCancelEdit} color="inherit">
+          <DialogActions className='p-4 bg-gray-50'>
+            <Button 
+              onClick={handleCancelEdit} 
+              className='bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md'
+            >
               Cancel
             </Button>
             <Button 
               onClick={handleCostSubmit}
-              color="primary" 
-              variant="contained"
+              className={`${editingProduct.currentCost === editingProduct.newCost ? 'bg-gray-400 cursor-not-allowed' : 'bg-pink-600 hover:bg-pink-700'} text-white px-4 py-2 rounded-md`}
               disabled={editingProduct.currentCost === editingProduct.newCost}
             >
               Update
@@ -902,7 +1466,7 @@ const FinanceAnalytics = () => {
         <Alert 
           onClose={() => setSnackbar({ ...snackbar, open: false })} 
           severity={snackbar.severity}
-          sx={{ width: '100%' }}
+          className='rounded-md shadow-md'
         >
           {snackbar.message}
         </Alert>
@@ -910,22 +1474,14 @@ const FinanceAnalytics = () => {
       
       {/* Loading indicator */}
       {loading && (
-        <Box sx={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          width: '100%', 
-          height: '100%', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          backgroundColor: 'rgba(255, 255, 255, 0.7)',
-          zIndex: 9999
-        }}>
-          <CircularProgress />
-        </Box>
+        <div className='fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50'>
+          <div className='p-6 bg-white rounded-lg shadow-lg'>
+            <CircularProgress className='text-pink-600' />
+            <p className='mt-4 text-gray-700 text-center'>Loading data...</p>
+          </div>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

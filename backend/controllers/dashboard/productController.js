@@ -89,13 +89,11 @@ const get_products = async (req, res) => {
             perPage = 10, 
             sellerId = '',
             categoryId = '',
-            minPrice = '',
-            maxPrice = '',
-            minDiscount = '',
             sortBy = 'createdAt',
             sortOrder = 'desc',
-            rating = 0
-        } = req.body || {};
+        } = req.query || {};
+        console.log('req.query', req.query);
+        
 
         const pageNumber = Math.max(1, Number(page));
         const itemsPerPage = Math.max(1, Number(perPage));
@@ -104,10 +102,6 @@ const get_products = async (req, res) => {
         // Build query filter
         let query = {};
         
-        if(rating > 0){
-            query.rating = { $gte: rating }
-        }
-
         // Search by name
         if (searchValue) {
             query.name = { $regex: searchValue, $options: 'i' };
@@ -123,21 +117,6 @@ const get_products = async (req, res) => {
             query.categoryId = categoryId;
         }
 
-        // Filter by price range
-        if (minPrice !== undefined && minPrice !== '' || maxPrice !== undefined && maxPrice !== '') {
-            query.price = {};
-            if (minPrice !== undefined && minPrice !== '') {
-                query.price.$gte = Number(minPrice);
-            }
-            if (maxPrice !== undefined && maxPrice !== '') {
-                query.price.$lte = Number(maxPrice);
-            }
-        }
-
-        // Filter by minimum discount
-        if (minDiscount !== undefined && minDiscount !== '') {
-            query.discount = { $gte: Number(minDiscount) };
-        }
 
         // Determine sort order
         const sort = {};
