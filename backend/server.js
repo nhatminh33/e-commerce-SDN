@@ -36,6 +36,7 @@ app.use('/api', require('./routes/dashboard/salaryRouters'))
 app.use('/api/statistics', require('./routes/dashboard/statisticsRouters'))
 app.use('/api/admin', require('./routes/dashboard/adminRouters'))
 app.use('/api/seller/orders', require('./routes/dashboard/orderManagerRouters'))
+app.use('/api/dashboard/cash-flow', require('./routes/dashboard/cashFlowRoutes'))
 app.use("/api", require("./routes/chatRoutes"));
 app.use('/api', require('./routes/bannerRoutes'))
 app.use("/api", require("./routes/commentRoutes"));

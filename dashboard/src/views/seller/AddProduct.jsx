@@ -28,7 +28,8 @@ const AddProduct = () => {
         description: '',
         discount: 0,
         price: "",
-        stock: ""
+        stock: "",
+        costPrice: ""
     })
 
     const inputHandle = (e) => {
@@ -80,7 +81,8 @@ const AddProduct = () => {
                 description: '',
                 discount: 0,
                 price: "",
-                stock: ""
+                stock: "",
+                costPrice: ""
             }) 
             setImageShow([])
             setImages([])
@@ -121,6 +123,7 @@ const AddProduct = () => {
         formData.append('price', state.price)
         formData.append('stock', state.stock)
         formData.append('discount', state.discount || 0)
+        formData.append('costPrice', state.costPrice || 0)
         formData.append('categoryId', categoryId)
 
         for (let i = 0; i < images.length; i++) {
@@ -183,6 +186,11 @@ const AddProduct = () => {
                                 <label htmlFor="price">Price</label>
                                 <input className='px-4 py-2 focus:border-indigo-500 outline-none bg-[#6a5fdf] border border-slate-700 rounded-md text-[#d0d2d6]' onChange={inputHandle} value={state.price} type="number" name='price' id='price' placeholder='Price' required />
                             </div>  
+
+                            <div className='flex flex-col w-full gap-1'>
+                                <label htmlFor="costPrice">Cost Price</label>
+                                <input className='px-4 py-2 focus:border-indigo-500 outline-none bg-[#6a5fdf] border border-slate-700 rounded-md text-[#d0d2d6]' onChange={inputHandle} value={state.costPrice} type="number" name='costPrice' id='costPrice' placeholder='Cost Price' />
+                            </div>
                         </div>
 
                         <div className='flex flex-col mb-3 md:flex-row gap-4 w-full text-[#d0d2d6]'>

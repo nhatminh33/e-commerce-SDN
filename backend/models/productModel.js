@@ -30,6 +30,11 @@ const productSchema = new Schema({
         required: [true, "Price is required!"],
         min: [0, "Price cannot be negative!"]
     },
+    costPrice: {
+        type: Number,
+        min: [0, "Cost price cannot be negative!"],
+        default: 0
+    },
     stock: {
         type: Number,
         required: [true, "Stock quantity is required!"],

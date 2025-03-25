@@ -22,7 +22,8 @@ const ProductDetails = () => {
         price: 0,
         discount: 0,
         stock: 0,
-        categoryId: ''
+        categoryId: '',
+        costPrice: 0
     });
     
     const [activateEdit, setActivateEdit] = useState(isEditMode);
@@ -46,7 +47,8 @@ const ProductDetails = () => {
                 price: product.price,
                 discount: product.discount,
                 stock: product.stock,
-                categoryId: product.categoryId?._id || product.categoryId
+                categoryId: product.categoryId?._id || product.categoryId,
+                costPrice: product.costPrice || 0
             });
         }
     }, [product]);
@@ -68,6 +70,7 @@ const ProductDetails = () => {
             discount: Number(state.discount),
             stock: Number(state.stock),
             categoryId: state.categoryId,
+            costPrice: Number(state.costPrice),
             productId: productId
         };
         
@@ -252,7 +255,18 @@ const ProductDetails = () => {
                                             onChange={handleInputChange}
                                             className='px-3 py-2 bg-[#475569] border border-slate-700 rounded-md outline-none focus:border-indigo-500 text-white'
                                             required
-                                            min='0'
+                                        />
+                                    </div>
+                                    
+                                    <div className='flex flex-col gap-1'>
+                                        <label htmlFor='costPrice'>Cost Price</label>
+                                        <input 
+                                            type='number' 
+                                            id='costPrice' 
+                                            name='costPrice' 
+                                            value={state.costPrice} 
+                                            onChange={handleInputChange}
+                                            className='px-3 py-2 bg-[#475569] border border-slate-700 rounded-md outline-none focus:border-indigo-500 text-white'
                                         />
                                     </div>
                                     
@@ -338,13 +352,27 @@ const ProductDetails = () => {
                                     </div>
                                     
                                     <div className='bg-[#475569] p-3 rounded-md'>
-                                        <h3 className='text-gray-300 text-sm'>Discount</h3>
-                                        <p className='text-lg font-bold'>{product.discount}%</p>
+                                        <h3 className='text-gray-300 text-sm'>Cost Price</h3>
+                                        <p className='text-lg font-bold'>${product.costPrice || 0}</p>
                                     </div>
                                     
                                     <div className='bg-[#475569] p-3 rounded-md'>
+                                        <h3 className='text-gray-300 text-sm'>Discount</h3>
+                                        <p className='text-lg font-bold'>{product.discount}%</p>
+                                    </div>
+                                </div>
+                                
+                                <div className='grid grid-cols-2 gap-4 mt-2'>
+                                    <div className='bg-[#475569] p-3 rounded-md'>
                                         <h3 className='text-gray-300 text-sm'>Stock</h3>
                                         <p className='text-lg font-bold'>{product.stock}</p>
+                                    </div>
+                                    
+                                    <div className='bg-[#475569] p-3 rounded-md'>
+                                        <h3 className='text-gray-300 text-sm'>Profit Margin</h3>
+                                        <p className='text-lg font-bold'>
+                                            {product.costPrice ? ((product.price - product.costPrice) / product.price * 100).toFixed(2) : 100}%
+                                        </p>
                                     </div>
                                 </div>
                                 

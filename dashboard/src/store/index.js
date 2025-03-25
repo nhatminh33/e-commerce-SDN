@@ -9,6 +9,7 @@ import PaymentReducer from './Reducers/PaymentReducer'
 import dashboardReducer from './Reducers/dashboardReducer'
 import bannerReducer from './Reducers/bannerReducer'
 import notificationReducer from './Reducers/notificationReducer'
+import cashFlowReducer from './Reducers/cashFlowReducer'
 
 const store = configureStore({
     reducer: {
@@ -21,7 +22,8 @@ const store = configureStore({
         payment: PaymentReducer,
         dashboard: dashboardReducer,
         banner: bannerReducer,
-        notification: notificationReducer
+        notification: notificationReducer,
+        cashFlow: cashFlowReducer
     },
     middleware: getDefaultMiddleware => {
         return getDefaultMiddleware({

@@ -173,6 +173,7 @@ const Products = () => {
                                 <option value="createdAt">Created Date</option>
                                 <option value="name">Product Name</option>
                                 <option value="price">Price</option>
+                                <option value="costPrice">Cost Price</option>
                                 <option value="stock">Stock</option>
                                 <option value="discount">Discount</option>
                             </select>
@@ -247,6 +248,7 @@ const Products = () => {
                                         <th scope='col' className='py-3 px-4'>Category</th>
                                         <th scope='col' className='py-3 px-4'>Seller</th>
                                         <th scope='col' className='py-3 px-4'>Price</th>
+                                        <th scope='col' className='py-3 px-4'>Cost Price</th>
                                         <th scope='col' className='py-3 px-4'>Discount</th>
                                         <th scope='col' className='py-3 px-4'>Stock</th>
                                         <th scope='col' className='py-3 px-4'>Actions</th>
@@ -267,6 +269,7 @@ const Products = () => {
                                                 <td className='py-3 px-4'>{product.categoryName || 'N/A'}</td>
                                                 <td className='py-3 px-4'>{product.sellerName || 'N/A'}</td>
                                                 <td className='py-3 px-4'>${product.price}</td>
+                                                <td className='py-3 px-4'>${product.costPrice || 0}</td>
                                                 <td className='py-3 px-4'>{product.discount}%</td>
                                                 <td className='py-3 px-4'>{product.stock}</td>
                                                 <td className='py-3 px-4 flex gap-2'>
@@ -293,7 +296,7 @@ const Products = () => {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={8} className='py-4 text-center'>No products found</td>
+                                            <td colSpan={9} className='py-4 text-center'>No products found</td>
                                         </tr>
                                     )}
                                 </tbody>

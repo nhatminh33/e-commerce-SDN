@@ -13,7 +13,7 @@ const add_product = async (req, res) => {
             return responseReturn(res, 400, { error: err.message });
         }
 
-        let { name, categoryId, description, stock, price, discount } = fields;
+        let { name, categoryId, description, stock, price, discount, costPrice } = fields;
         let { images } = files;
         
         // Validate fields
@@ -71,6 +71,7 @@ const add_product = async (req, res) => {
                 stock: parseInt(stock),
                 price: parseInt(price),
                 discount: parseInt(discount) || 0,
+                costPrice: parseInt(costPrice) || 0,
                 images: allImageUrl,
             });
             responseReturn(res, 201, { message: 'Product added successfully' });
@@ -193,7 +194,7 @@ const get_product = async (req, res) => {
 
 const update_product = async (req, res) => {
     try {
-        const { productId, name, description, stock, price, discount, categoryId, sellerId } = req.body;
+        const { productId, name, description, stock, price, discount, categoryId, sellerId, costPrice } = req.body;
         
         if (!productId) {
             return responseReturn(res, 400, { error: 'Product ID is required' });
@@ -221,7 +222,8 @@ const update_product = async (req, res) => {
             price,
             discount: discount || 0,
             slug,
-            categoryId
+            categoryId,
+            costPrice: costPrice || 0
         });
 
         const updatedProduct = await productModel.findById(productId).populate('categoryId');
@@ -537,7 +539,7 @@ const get_admin_products = async (req, res) => {
  */
 const admin_update_product = async (req, res) => {
     try {
-        const { productId, name, description, stock, price, discount, categoryId } = req.body;
+        const { productId, name, description, stock, price, discount, categoryId, costPrice } = req.body;
         
         if (!productId) {
             return responseReturn(res, 400, { error: 'Product ID is required' });
@@ -560,7 +562,8 @@ const admin_update_product = async (req, res) => {
             price,
             discount: discount || 0,
             slug,
-            categoryId
+            categoryId,
+            costPrice: costPrice || 0
         });
 
         const updatedProduct = await productModel.findById(productId)

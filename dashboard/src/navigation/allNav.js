@@ -1,6 +1,6 @@
 import { AiOutlineDashboard, AiOutlineShoppingCart } from "react-icons/ai";
-import { BiCategory } from "react-icons/bi";
-import { FaUserTimes, FaUsers } from "react-icons/fa";
+import { BiCategory, BiMoney } from "react-icons/bi";
+import { FaUserTimes, FaUsers, FaChartPie } from "react-icons/fa";
 import { MdPayment } from "react-icons/md";
 import { FaCodePullRequest } from "react-icons/fa6";
 import { IoIosChatbubbles } from "react-icons/io";
@@ -28,6 +28,13 @@ export const allNav = [
         icon : <AiOutlineShoppingCart />,
         role : 'admin',
         path: '/admin/dashboard/orders'
+    },
+    {
+        id : 6,
+        title : 'Finance Analytics',
+        icon : <BiMoney />,
+        role : 'admin',
+        path: '/admin/dashboard/finance-analytics'
     },
     {
         id : 3,

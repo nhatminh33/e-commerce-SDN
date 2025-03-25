@@ -35,7 +35,8 @@ const EditProduct = () => {
         description: '',
         discount: 0,
         price: "",
-        stock: ""
+        stock: "",
+        costPrice: ""
     });
 
     const inputHandle = (e) => {
@@ -81,7 +82,8 @@ const EditProduct = () => {
                 description: product.description || '',
                 discount: product.discount || 0,
                 price: product.price || '',
-                stock: product.stock || ''
+                stock: product.stock || '',
+                costPrice: product.costPrice || ''
             });
             setCategory(product.categoryId?.name || '');
             setCategoryId(product.categoryId?._id || '');
@@ -114,6 +116,7 @@ const EditProduct = () => {
             discount: state.discount,
             price: state.price,
             stock: state.stock,
+            costPrice: state.costPrice || 0,
             categoryId: categoryId,
             productId: productId,
             sellerId: userInfo._id
@@ -219,7 +222,20 @@ const EditProduct = () => {
                                     placeholder='Price' 
                                     required
                                 />
-                            </div> 
+                            </div>
+
+                            <div className='flex flex-col w-full gap-1'>
+                                <label htmlFor="costPrice">Cost Price</label>
+                                <input 
+                                    className='px-4 py-2 focus:border-indigo-500 outline-none bg-[#6a5fdf] border border-slate-700 rounded-md text-[#d0d2d6]' 
+                                    onChange={inputHandle} 
+                                    value={state.costPrice} 
+                                    type="number" 
+                                    name='costPrice' 
+                                    id='costPrice' 
+                                    placeholder='Cost Price' 
+                                />
+                            </div>
                         </div>
 
                         <div className='flex flex-col mb-3 md:flex-row gap-4 w-full text-[#d0d2d6]'>

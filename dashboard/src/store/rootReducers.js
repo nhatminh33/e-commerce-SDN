@@ -8,6 +8,7 @@ import dashboardReducer from "./Reducers/dashboardReducer";
 import productReducer from "./Reducers/productReducer";
 import sellerReducer from "./Reducers/sellerReducer";
 import notificationReducer from "./Reducers/notificationReducer";
+import cashFlowReducer from "./Reducers/cashFlowReducer";
 
 const rootReducer = {
     auth: authReducer,
@@ -19,6 +20,7 @@ const rootReducer = {
     payment: PaymentReducer,
     dashboard: dashboardReducer,
     banner: bannerReducer,
-    notification: notificationReducer
+    notification: notificationReducer,
+    cashFlow: cashFlowReducer
 }
 export default rootReducer;
