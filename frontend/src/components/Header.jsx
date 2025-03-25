@@ -653,7 +653,7 @@ const Header = () => {
                                                 className='w-[150px] px-4 h-full flex items-center cursor-pointer'
                                                 onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
                                             >
-                                                <span className='text-gray-600 font-medium'>{category || 'Select Category'}</span>
+                                                <span className='text-gray-600 font-medium w-full'>{category || 'Select Category'}</span>
                                                 <span className='ml-2'><IoIosArrowDown /></span>
                                             </div>
                                             
