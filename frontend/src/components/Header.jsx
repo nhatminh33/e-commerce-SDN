@@ -384,140 +384,101 @@ const Header = () => {
 
     return (
         <div className='w-full bg-white shadow-sm'>
-            {/* Top Bar */}
-            <div className='header-top bg-pink-50 md-lg:hidden border-b border-pink-100'>
-                <div className='w-[85%] lg:w-[90%] mx-auto'>
-                    <div className='flex w-full justify-between items-center h-[50px] text-gray-600'>
-                        <ul className='flex justify-start items-center gap-8 text-sm'>
-                            <li className='flex relative justify-center items-center gap-2 after:absolute after:h-[18px] after:w-[1px] after:bg-pink-200 after:-right-[16px]'>
-                                <span className="text-pink-500"><MdEmail /></span>
-                                <span>velvetfleur@gmail.com</span>
-                            </li>
-
-                            <li className='flex relative justify-center items-center gap-2'>
-                                <span className="text-pink-500"><IoMdPhonePortrait /></span>
-                                <span>+(123) 3243 343</span>
-                            </li> 
-                        </ul>
-
-                        <div>
-                            <div className='flex justify-center items-center gap-10'>
-                                <div className='flex justify-center items-center gap-4'>
-                                    <a href="#" className="text-gray-500 hover:text-pink-500 transition-all"><FaFacebookF /></a>
-                                    <a href="#" className="text-gray-500 hover:text-pink-500 transition-all"><FaTwitter /></a>
-                                    <a href="#" className="text-gray-500 hover:text-pink-500 transition-all"><FaLinkedin /></a>
-                                    <a href="#" className="text-gray-500 hover:text-pink-500 transition-all"><FaGithub /></a> 
-                                </div>
-                                
-                                <div className='flex group cursor-pointer text-gray-600 text-sm justify-center items-center gap-1 relative after:h-[18px] after:w-[1px] after:bg-pink-200 after:-right-[16px] after:absolute before:absolute before:h-[18px] before:bg-pink-200 before:w-[1px] before:-left-[20px]'>
-                                    <img src="http://localhost:3000/images/language.png" alt="Language" />
-                                    <span><IoMdArrowDropdown /></span>
-                                    <ul className='absolute invisible transition-all top-12 rounded-md duration-200 text-gray-600 p-2 w-[100px] flex flex-col gap-3 group-hover:visible group-hover:top-6 group-hover:bg-white z-10 shadow-md'>
-                                        <li className="hover:text-pink-500 transition-all">English</li>
-                                        <li className="hover:text-pink-500 transition-all">Tiếng Việt</li>
-                                    </ul>
-                                </div>
-
-                                {userInfo ? (
-                                    <Link className='flex cursor-pointer justify-center items-center gap-2 text-sm' to='/dashboard'>
-                                        <span className="text-pink-500"><FaUser/></span>
-                                        <span>{userInfo.name}</span>
-                                    </Link>
-                                ) : (
-                                    <Link to='/login' className='flex cursor-pointer justify-center items-center gap-2 text-sm'>
-                                        <span className="text-pink-500"><FaLock /></span>
-                                        <span>Login</span>
-                                    </Link>
-                                )}
+        {/* Main Header */}
+        <div className='w-white'>
+            <div className='w-[85%] lg:w-[90%] mx-auto'>
+                <div className='h-[90px] md-lg:h-[100px] flex justify-between items-center flex-wrap'>
+                    {/* Logo */}
+                    <div className='md-lg:w-full w-3/12 md-lg:pt-4'>
+                        <div className='flex justify-between items-center'>
+                            <Link to='/'>
+                                <img src="http://localhost:3000/images/logo.png" alt="Velvet Fleur" />
+                            </Link>
+                            <div 
+                                className='justify-center items-center w-[30px] h-[30px] bg-white text-pink-500 border border-pink-200 rounded-md cursor-pointer lg:hidden md-lg:flex xl:hidden hidden' 
+                                onClick={() => setShowSidebar(false)}
+                            >
+                                <span><FaList/></span>
                             </div>
                         </div> 
-                    </div> 
+                    </div>
+                    
+                    {/* Navigation */}
+                    <div className='md:lg:w-full w-9/12'>
+                        <div className='flex justify-between md-lg:justify-center items-center flex-wrap pl-8'>
+                            <ul className='flex justify-start items-start gap-8 text-sm font-medium uppercase md-lg:hidden'>
+                                <li>
+                                    <Link 
+                                        to='/' 
+                                        className={`p-2 block ${pathname === '/' ? 'text-pink-500' : 'text-gray-600 hover:text-pink-500 transition-all'}`}
+                                    >
+                                        Home
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link 
+                                        to='/about'
+                                        className={`p-2 block ${pathname === '/about' ? 'text-pink-500' : 'text-gray-600 hover:text-pink-500 transition-all'}`}
+                                    >
+                                        About Us
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link 
+                                        to='/contact'
+                                        className={`p-2 block ${pathname === '/contact' ? 'text-pink-500' : 'text-gray-600 hover:text-pink-500 transition-all'}`}
+                                    >
+                                        Contact Us
+                                    </Link>
+                                </li>
+                            </ul>
+
+                            <div className='flex md-lg:hidden justify-center items-center gap-5'>
+                                <div className='flex justify-center gap-5'>
+                                    {/* Wishlist Icon */}
+                                    <div 
+                                        onClick={() => navigate(userInfo ? '/dashboard/my-wishlist' : '/login')} 
+                                        className='relative flex justify-center items-center cursor-pointer w-[40px] h-[40px] rounded-full bg-pink-50 hover:bg-pink-100 transition-all'
+                                    >
+                                        <span className='text-xl text-pink-500'><FaHeart /></span>
+                                        {wishlist_count !== 0 && (
+                                            <div className='w-[20px] h-[20px] absolute bg-pink-500 rounded-full text-white flex justify-center items-center -top-[3px] -right-[5px] text-xs'>
+                                                {wishlist_count}
+                                            </div>
+                                        )}                  
+                                    </div>
+
+                                    {/* Cart Icon */}
+                                    <div 
+                                        onClick={redirect_card_page} 
+                                        className="flex cursor-pointer justify-center items-center h-[40px] w-[40px] rounded-full bg-pink-50 hover:bg-pink-100 transition-all"
+                                    >
+                                        <span className="text-xl text-pink-500 cursor-pointer relative">
+                                            <FaCartShopping />
+                                            <span className="w-[20px] h-[20px] absolute -top-[3px] -right-[8px] rounded-full bg-pink-500 text-white flex justify-center items-center text-xs">
+                                                {card_product_count}
+                                            </span>
+                                        </span>
+                                    </div>
+                                    {userInfo ? (
+                                <Link className='flex cursor-pointer justify-center items-center gap-2 text-sm' to='/dashboard'>
+                                    <span className="text-pink-500"><FaUser/></span>
+                                    <span>{userInfo.name}</span>
+                                </Link>
+                            ) : (
+                                <Link to='/login' className='flex cursor-pointer justify-center items-center gap-2 text-sm'>
+                                    <span className="text-pink-500"><FaLock /></span>
+                                    <span>Login</span>
+                                </Link>
+                            )}
+                                </div> 
+                            </div>
+                        </div> 
+                    </div>
                 </div> 
             </div>
-
-            {/* Main Header */}
-            <div className='w-white'>
-                <div className='w-[85%] lg:w-[90%] mx-auto'>
-                    <div className='h-[90px] md-lg:h-[100px] flex justify-between items-center flex-wrap'>
-                        {/* Logo */}
-                        <div className='md-lg:w-full w-3/12 md-lg:pt-4'>
-                            <div className='flex justify-between items-center'>
-                                <Link to='/'>
-                                    <img src="http://localhost:3000/images/logo.png" alt="Velvet Fleur" />
-                                </Link>
-                                <div 
-                                    className='justify-center items-center w-[30px] h-[30px] bg-white text-pink-500 border border-pink-200 rounded-md cursor-pointer lg:hidden md-lg:flex xl:hidden hidden' 
-                                    onClick={() => setShowSidebar(false)}
-                                >
-                                    <span><FaList/></span>
-                                </div>
-                            </div> 
-                        </div>
-                        
-                        {/* Navigation */}
-                        <div className='md:lg:w-full w-9/12'>
-                            <div className='flex justify-between md-lg:justify-center items-center flex-wrap pl-8'>
-                                <ul className='flex justify-start items-start gap-8 text-sm font-medium uppercase md-lg:hidden'>
-                                    <li>
-                                        <Link 
-                                            to='/' 
-                                            className={`p-2 block ${pathname === '/' ? 'text-pink-500' : 'text-gray-600 hover:text-pink-500 transition-all'}`}
-                                        >
-                                            Home
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link 
-                                            to='/about'
-                                            className={`p-2 block ${pathname === '/about' ? 'text-pink-500' : 'text-gray-600 hover:text-pink-500 transition-all'}`}
-                                        >
-                                            About Us
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link 
-                                            to='/contact'
-                                            className={`p-2 block ${pathname === '/contact' ? 'text-pink-500' : 'text-gray-600 hover:text-pink-500 transition-all'}`}
-                                        >
-                                            Contact Us
-                                        </Link>
-                                    </li>
-                                </ul>
-
-                                <div className='flex md-lg:hidden justify-center items-center gap-5'>
-                                    <div className='flex justify-center gap-5'>
-                                        {/* Wishlist Icon */}
-                                        <div 
-                                            onClick={() => navigate(userInfo ? '/dashboard/my-wishlist' : '/login')} 
-                                            className='relative flex justify-center items-center cursor-pointer w-[40px] h-[40px] rounded-full bg-pink-50 hover:bg-pink-100 transition-all'
-                                        >
-                                            <span className='text-xl text-pink-500'><FaHeart /></span>
-                                            {wishlist_count !== 0 && (
-                                                <div className='w-[20px] h-[20px] absolute bg-pink-500 rounded-full text-white flex justify-center items-center -top-[3px] -right-[5px] text-xs'>
-                                                    {wishlist_count}
-                                                </div>
-                                            )}                  
-                                        </div>
-
-                                        {/* Cart Icon */}
-                                        <div 
-                                            onClick={redirect_card_page} 
-                                            className="flex cursor-pointer justify-center items-center h-[40px] w-[40px] rounded-full bg-pink-50 hover:bg-pink-100 transition-all"
-                                        >
-                                            <span className="text-xl text-pink-500 cursor-pointer relative">
-                                                <FaCartShopping />
-                                                <span className="w-[20px] h-[20px] absolute -top-[3px] -right-[8px] rounded-full bg-pink-500 text-white flex justify-center items-center text-xs">
-                                                    {card_product_count}
-                                                </span>
-                                            </span>
-                                        </div>
-                                    </div> 
-                                </div>
-                            </div> 
-                        </div>
-                    </div> 
-                </div>
-            </div>
+        </div>
+    
 
             {/* Mobile Sidebar */}
             <div className='hidden md-lg:block'>
