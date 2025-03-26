@@ -65,6 +65,12 @@ const Header = () => {
 
     return (
         <div className='w-full bg-white shadow-sm'>
+            {/* Top Bar */}
+            <div className='header-top bg-pink-50 md-lg:hidden border-b border-pink-100'>
+                <div className='w-[85%] lg:w-[90%] mx-auto'>
+                
+            </div>
+
             {/* Main Header */}
             <div className='bg-pink-50'>
                 <div className='w-[85%] lg:w-[90%] mx-auto'>
@@ -125,24 +131,24 @@ const Header = () => {
                                                 </span>
                                             </span>
                                         </div>
-
                                         {userInfo ? (
-                                            <Link className='flex cursor-pointer justify-center items-center     gap-2 text-sm' to='/dashboard'>
-                                                <span className="text-pink-500 text-xl"><FaUser /></span>
-                                                <span>{userInfo.name}</span>
-                                            </Link>
-                                        ) : (
-                                            <Link to='/login' className='flex cursor-pointer justify-center items-center gap-2 text-sm'>
-                                                <span className="text-pink-500"><FaLock /></span>
-                                                <span>Login</span>
-                                            </Link>
-                                        )}
-                                    </div>
+                                    <Link className='flex cursor-pointer justify-center items-center gap-2 text-sm' to='/dashboard'>
+                                        <span className="text-pink-500"><FaUser/></span>
+                                        <span>{userInfo.name}</span>
+                                    </Link>
+                                ) : (
+                                    <Link to='/login' className='flex cursor-pointer justify-center items-center gap-2 text-sm'>
+                                        <span className="text-pink-500"><FaLock /></span>
+                                        <span>Login</span>
+                                    </Link>
+                                )}
+                                    </div> 
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
             </div>
 
             {/* Mobile Sidebar */}
