@@ -375,14 +375,14 @@ const Details = () => {
                             </div>
 
                             <div className='flex gap-3 pt-2'>
-                                {product.stock ? (
+                                {/* {product.stock ? (
                                     <button 
                                         onClick={buynow} 
                                         className='px-8 py-3 h-[50px] cursor-pointer bg-pink-600 text-white rounded-md hover:bg-pink-700 transition-all shadow-sm'
                                     >
                                         Buy Now
                                     </button>
-                                ) : ''}
+                                ) : ''} */}
                                 <button 
                                     onClick={chatWithSeller} 
                                     className='px-8 py-3 h-[50px] cursor-pointer bg-pink-500 text-white rounded-md hover:bg-pink-600 transition-all shadow-sm flex items-center gap-2'

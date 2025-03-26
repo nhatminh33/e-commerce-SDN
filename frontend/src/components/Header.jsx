@@ -15,10 +15,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { get_card_products, get_wishlist_products } from '../store/reducers/cardReducer';
 import { get_products } from '../store/reducers/homeReducer';
 
-const Header = () => {
+const Header = ({ categorys = [], currentCategory = '', onCategoryChange, searchValue = '', onSearch }) => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const { categorys } = useSelector(state => state.home);
     const { userInfo } = useSelector(state => state.auth);
     const { card_product_count, wishlist_count } = useSelector(state => state.card);
 
@@ -26,27 +25,26 @@ const Header = () => {
 
     const [showSidebar, setShowSidebar] = useState(true);
     const [categoryShow, setCategoryShow] = useState(true);
-    const [searchValue, setSearchValue] = useState('');
-    const [category, setCategory] = useState('');
+    const [localSearchValue, setLocalSearchValue] = useState(searchValue);
     const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
 
-    const search = () => {
-        dispatch(
-            get_products({
-                categoryId: category,
-                searchValue: searchValue,
-            })
-        );
+    // Update local search when prop changes
+    useEffect(() => {
+        setLocalSearchValue(searchValue);
+    }, [searchValue]);
+
+    const handleSearch = () => {
+        if (onSearch) {
+            onSearch(localSearchValue);
+        }
     };
 
-
-    useEffect(() => {
-        dispatch(
-            get_products({
-                categoryId: category,
-            })
-        );
-    }, [category, dispatch]);
+    const handleCategorySelect = (catId) => {
+        if (onCategoryChange) {
+            onCategoryChange(catId);
+            setCategoryShow(true); // Close dropdown after selection
+        }
+    };
 
     const redirect_card_page = () => {
         if (userInfo) {
@@ -65,12 +63,6 @@ const Header = () => {
 
     return (
         <div className='w-full bg-white shadow-sm'>
-            {/* Top Bar */}
-            <div className='header-top bg-pink-50 md-lg:hidden border-b border-pink-100'>
-                <div className='w-[85%] lg:w-[90%] mx-auto'>
-                
-            </div>
-
             {/* Main Header */}
             <div className='bg-pink-50'>
                 <div className='w-[85%] lg:w-[90%] mx-auto'>
@@ -131,24 +123,24 @@ const Header = () => {
                                                 </span>
                                             </span>
                                         </div>
+
                                         {userInfo ? (
-                                    <Link className='flex cursor-pointer justify-center items-center gap-2 text-sm' to='/dashboard'>
-                                        <span className="text-pink-500"><FaUser/></span>
-                                        <span>{userInfo.name}</span>
-                                    </Link>
-                                ) : (
-                                    <Link to='/login' className='flex cursor-pointer justify-center items-center gap-2 text-sm'>
-                                        <span className="text-pink-500"><FaLock /></span>
-                                        <span>Login</span>
-                                    </Link>
-                                )}
-                                    </div> 
+                                            <Link className='flex cursor-pointer justify-center items-center     gap-2 text-sm' to='/dashboard'>
+                                                <span className="text-pink-500 text-xl"><FaUser /></span>
+                                                <span>{userInfo.name}</span>
+                                            </Link>
+                                        ) : (
+                                            <Link to='/login' className='flex cursor-pointer justify-center items-center gap-2 text-sm'>
+                                                <span className="text-pink-500"><FaLock /></span>
+                                                <span>Login</span>
+                                            </Link>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
             </div>
 
             {/* Mobile Sidebar */}
@@ -238,7 +230,7 @@ const Header = () => {
                                 >
                                     <div className='flex justify-center items-center gap-3'>
                                         <span><FaList /></span>
-                                        <span>All Categories</span>
+                                        <span>Select Category</span>
                                     </div>
                                     <span className='pt-1'>{categoryShow ? <IoIosArrowDown /> : <IoIosArrowUp />}</span>
                                 </div>
@@ -246,30 +238,24 @@ const Header = () => {
                                 <div
                                     className={`${categoryShow ? 'h-0' : 'h-[400px]'} overflow-hidden transition-all md-lg:relative duration-500 absolute z-[99999] bg-white w-full border border-pink-100 rounded-b-md shadow-md`}
                                 >
-                                    <ul className='py-2 text-gray-600'>
+                                    <Link to='/' className='py-2 text-gray-600'>
                                         <li
-                                            className={`flex justify-start items-center gap-2 px-[24px] py-[6px] hover:bg-pink-50 transition-all ${category === '' ? 'bg-pink-100' : ''}`}
-                                            onClick={() => {
-                                                setCategory('');
-                                                setCategoryShow(true); // Đóng dropdown sau khi chọn
-                                            }}
+                                            className={`flex justify-start items-center gap-2 px-[24px] py-[6px] hover:bg-pink-50 transition-all ${currentCategory === '' ? 'bg-pink-100' : ''}`}
+                                            onClick={() => handleCategorySelect('')}
                                         >
                                             <img src="http://localhost:3000/images/logo.png" className='w-[30px] h-[30px] rounded-full border border-pink-100 object-cover' alt="All Categories" />
                                             <p className='text-sm block hover:text-pink-500 transition-all cursor-pointer'>All Categories</p>
                                         </li>
                                         {categorys.map((c, i) => (
                                             <li key={i}
-                                                className={`flex justify-start items-center gap-2 px-[24px] py-[6px] hover:bg-pink-50 transition-all ${category === c._id ? 'bg-pink-100' : ''}`}
-                                                onClick={() => {
-                                                    setCategory(c._id);
-                                                    setCategoryShow(true); // Đóng dropdown sau khi chọn
-                                                }}
+                                                className={`flex justify-start items-center gap-2 px-[24px] py-[6px] hover:bg-pink-50 transition-all ${currentCategory === c._id ? 'bg-pink-100' : ''}`}
+                                                onClick={() => handleCategorySelect(c._id)}
                                             >
                                                 <img src={c.image} className='w-[30px] h-[30px] rounded-full border border-pink-100 object-cover' alt={c.name} />
                                                 <p className='text-sm block hover:text-pink-500 transition-all cursor-pointer'>{c.name}</p>
                                             </li>
                                         ))}
-                                    </ul>
+                                    </Link>
                                 </div>
                             </div>
                         </div>
@@ -281,55 +267,18 @@ const Header = () => {
                                     <div className='flex h-[50px] items-center relative gap-6 bg-white rounded-md shadow-sm'>
                                         {/* Category Filter In Search */}
                                         <div className='relative after:absolute after:h-[25px] after:w-[1px] after:bg-pink-100 after:-right-[15px] md:hidden'>
-                                            {/* <div 
-                                                className='w-[150px] px-4 h-full flex items-center cursor-pointer'
-                                                onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
-                                            >
-                                                <span className='text-gray-600 font-medium w-full'>{category || 'Select Category'}</span>
-                                                <span className='ml-2'><IoIosArrowDown /></span>
-                                            </div> */}
-
-                                            {/* {categoryDropdownOpen && (
-                                                <div className='absolute top-[50px] left-0 w-[220px] max-h-[300px] overflow-y-auto bg-white shadow-md rounded-md z-10 border border-pink-100'>
-                                                    <div className='p-2 border-b border-pink-100'>
-                                                        <div 
-                                                            className='px-3 py-2 text-gray-600 hover:bg-pink-50 cursor-pointer rounded-md'
-                                                            onClick={() => {
-                                                                setCategory('');
-                                                                setCategoryDropdownOpen(false);
-                                                            }}
-                                                        >
-                                                            All Categories
-                                                        </div>
-                                                    </div>
-                                                    <div className='p-2'>
-                                                        {categorys.map((c, i) => (
-                                                            <div 
-                                                                key={i} 
-                                                                className='px-3 py-2 text-gray-600 hover:bg-pink-50 cursor-pointer rounded-md flex items-center gap-2'
-                                                                onClick={() => {
-                                                                    setCategory(c.name);
-                                                                    setCategoryDropdownOpen(false);
-                                                                }}
-                                                            >
-                                                                <img src={c.image} className='w-[20px] h-[20px] rounded-full' alt={c.name} />
-                                                                <span>{c.name}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )} */}
+                                            {/* Dropdown removed */}
                                         </div>
 
                                         <input
                                             className='w-full relative bg-transparent text-gray-600 outline-0 px-3 h-full'
-                                            onChange={(e) => setSearchValue(e.target.value)}
-                                            value={searchValue}
+                                            onChange={(e) => setLocalSearchValue(e.target.value)}
+                                            value={localSearchValue}
                                             type="text"
                                             placeholder='What do you need?'
                                         />
                                         <button
-                                            onClick={search}
+                                            onClick={handleSearch}
                                             className='bg-pink-500 hover:bg-pink-600 transition-all right-0 absolute px-8 h-full font-medium text-white rounded-r-md'
                                         >
                                             SEARCH

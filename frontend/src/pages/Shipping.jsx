@@ -163,7 +163,7 @@ const Shipping = () => {
                 address: selected.streetAddress,
                 city: selected.province,
                 country: selected.district,
-                email: userInfo?.email || 'customer@example.com'
+                email: userInfo?.email || 'customer@gmail.com'
             };
         }
         return null;

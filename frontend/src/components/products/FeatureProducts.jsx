@@ -4,69 +4,45 @@ import Rating from '../Rating';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { add_to_card, add_to_wishlist, messageClear } from '../../store/reducers/cardReducer';
-import { get_products } from '../../store/reducers/homeReducer';
 import toast from 'react-hot-toast';
 
-const FeatureProducts = ({ products }) => {
-    const navigate = useNavigate()
-    const dispatch = useDispatch()
-    const { userInfo } = useSelector(state => state.auth)
-    const { errorMessage, successMessage } = useSelector(state => state.card)
-    const { totalProducts, perPage, currentPage, pages } = useSelector(state => state.home)
-    console.log('totalProducts, perPage, currentPage, pages', totalProducts, perPage, currentPage, pages);
+const FeatureProducts = ({ 
+    products = [], 
+    totalProducts, 
+    currentPage = 1, 
+    perPage = 10, 
+    pages, 
+    onPageChange, 
+    onPerPageChange 
+}) => {
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const { userInfo } = useSelector(state => state.auth);
+    const { errorMessage, successMessage } = useSelector(state => state.card);
     
     // Calculate total pages based on totalProducts and perPage
     const totalPages = Math.ceil(totalProducts / perPage);
 
-    // Fetch products initially
-    useEffect(() => {
-        dispatch(get_products({
-            page: 1,
-            perPage: perPage || 10,
-            searchValue: '',
-            categoryId: '',
-            sortBy: 'createdAt',
-            sortOrder: 'desc'
-        }));
-    }, [dispatch]);
-
-    // Handle page change
-    const handlePageChange = (newPage) => {
-        dispatch(get_products({
-            page: newPage,
-            perPage,
-            searchValue: '',
-            categoryId: '',
-            sortBy: 'createdAt',
-            sortOrder: 'desc'
-        }));
-    };
-
     // Handle Previous button click
     const handlePrevPage = () => {
         if (currentPage > 1) {
-            handlePageChange(currentPage - 1);
+            onPageChange(currentPage - 1);
         }
     };
 
     // Handle Next button click
     const handleNextPage = () => {
         if (currentPage < totalPages) {
-            handlePageChange(currentPage + 1);
+            onPageChange(currentPage + 1);
         }
     };
 
     // Handle items per page change
     const handleItemsPerPageChange = (e) => {
         const newPerPage = parseInt(e.target.value, 10);
-        dispatch(get_products({
-            page: 1, // Reset to first page when changing items per page
-            perPage: newPerPage,
-            searchValue: '',
-            categoryId: '',
-            sortBy: 'createdAt',
-            sortOrder: 'desc'
-        }));
+        if (onPerPageChange) {
+            onPerPageChange(newPerPage);
+        }
     };
 
     const add_card = (id) => {
@@ -90,15 +66,17 @@ const FeatureProducts = ({ products }) => {
             toast.error(errorMessage)
             dispatch(messageClear())
         }
-
     }, [successMessage, errorMessage, dispatch])
 
-
     const add_wishlist = (pro) => {
-        dispatch(add_to_wishlist({
-            userId: userInfo.id,
-            productId: pro._id,
-        }))
+        if (userInfo) {
+            dispatch(add_to_wishlist({
+                userId: userInfo.id,
+                productId: pro._id,
+            }))
+        } else {
+            navigate('/login')
+        }
     }
 
     // Define page range to display
@@ -165,17 +143,13 @@ const FeatureProducts = ({ products }) => {
 
                             </div>
                         </div>
-
-
-
-
                     </div>
                     )
                 }
             </div>
 
             {/* Improved Pagination */}
-            <div className="flex w-full justify-center items-center py-8 gap-4 items-center ">
+            <div className="flex w-full justify-center items-center py-8 gap-4 items-center">
                 <nav className="flex items-center space-x-2" aria-label="Pagination">
                     {/* Previous button */}
                     <a
@@ -214,7 +188,7 @@ const FeatureProducts = ({ products }) => {
                                 href="#"
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    handlePageChange(pageNum);
+                                    onPageChange(pageNum);
                                 }}
                                 aria-current={currentPage === pageNum ? "page" : undefined}
                                 className={`inline-flex items-center justify-center rounded-md ${currentPage === pageNum
@@ -233,7 +207,7 @@ const FeatureProducts = ({ products }) => {
                                     href="#"
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        handlePageChange(1);
+                                        onPageChange(1);
                                     }}
                                     className="inline-flex items-center justify-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                                 >
@@ -253,7 +227,7 @@ const FeatureProducts = ({ products }) => {
                                     href="#"
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        handlePageChange(pageNum);
+                                        onPageChange(pageNum);
                                     }}
                                     aria-current={currentPage === pageNum ? "page" : undefined}
                                     className={`inline-flex items-center justify-center rounded-md ${currentPage === pageNum
@@ -276,7 +250,7 @@ const FeatureProducts = ({ products }) => {
                                     href="#"
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        handlePageChange(totalPages);
+                                        onPageChange(totalPages);
                                     }}
                                     className="inline-flex items-center justify-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                                 >
@@ -332,8 +306,6 @@ const FeatureProducts = ({ products }) => {
                     </div>
                 </div>
             </div>
-
-
         </div>
     );
 };
