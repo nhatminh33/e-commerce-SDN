@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 const Card = () => {
     const dispatch = useDispatch();
     const { userInfo } = useSelector(state => state.auth);
-    const { card_products, successMessage, price, buy_product_item, shipping_fee, outofstock_products } = useSelector(state => state.card);
+    const { card_products, successMessage, price, buy_product_item, shipping_fee = 0, outofstock_products } = useSelector(state => state.card);
     const navigate = useNavigate();
     const [selectedProducts, setSelectedProducts] = useState([]);
     const toggleSelectProduct = (productId) => {
@@ -68,6 +68,8 @@ const Card = () => {
         }
     };
 
+    const productPrice = card_products.filter(c => selectedProducts.includes(c.productId)).reduce((acc, curr) => acc + (curr.price - Math.floor((curr.price * curr.discount) / 100)) * curr.quantity, 0);
+
     return (
         <div>
             <Header />
@@ -122,8 +124,8 @@ const Card = () => {
 
                                                         <div className='flex justify-between w-5/12 sm:w-full sm:mt-3'>
                                                             <div className='pl-4 sm:pl-0'>
-                                                                <h2 className='text-lg text-orange-500'>${c.price - Math.floor((c.price * c.discount) / 100)}</h2>
-                                                                <p className='line-through'>${c.price}</p>
+                                                                <h2 className='text-lg text-orange-500'>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(c.price - Math.floor((c.price * c.discount) / 100))}</h2>
+                                                                <p className='line-through'>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(c.price)}</p>
                                                                 <p>-{c.discount}%</p>
                                                             </div>
                                                             <div className='flex gap-2 flex-col'>
@@ -155,16 +157,16 @@ const Card = () => {
                                             <div className='bg-white p-3 text-slate-600 flex flex-col gap-3'>
                                                 <h2 className='text-xl font-bold'>Order Summary</h2>
                                                 <div className='flex justify-between items-center'>
-                                                    <span>{card_products.length} Items</span>
-                                                    <span>${price}</span>
+                                                    <span>{selectedProducts.length} Items</span>
+                                                    <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(productPrice)}</span>
                                                 </div>
                                                 <div className='flex justify-between items-center'>
                                                     <span>Shipping Fee</span>
-                                                    <span>${shipping_fee}</span>
+                                                    <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(shipping_fee)}</span>
                                                 </div>
                                                 <div className='flex justify-between items-center'>
                                                     <span>Total</span>
-                                                    <span className='text-lg text-[#059473]'>${price + shipping_fee}</span>
+                                                    <span className='text-lg text-[#059473]'>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(productPrice + shipping_fee)}</span>
                                                 </div>
                                                 <button onClick={redirect} className='px-5 py-[6px] bg-red-500 text-white uppercase'>
                                                     Proceed to Checkout ({card_products.length})

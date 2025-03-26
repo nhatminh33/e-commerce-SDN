@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken')
 
 const createAccessToken = async(data) => {
     const token = await jwt.sign(data, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: '7d'
+        expiresIn: '1d'
     })
     return token
 }

@@ -52,7 +52,7 @@ const Products = ({ title }) => {
                                     <img className='w-[110px] h-[110px]' src={pl.images?.[0] || 'fallback-image.jpg'} alt={pl.name || "Product"} />
                                     <div className='px-3 flex flex-col text-slate-600'>
                                         <h2>{pl.name || "No Name"}</h2>
-                                        <span className='text-lg font-bold'>${pl.price || "N/A"}</span>
+                                        <span className='text-lg font-bold'>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(pl.price || 0)}</span>
                                     </div>
                                 </Link>
                             ))

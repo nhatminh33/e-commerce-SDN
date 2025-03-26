@@ -32,7 +32,7 @@ const OrderDetails = () => {
             </div>
 
         <div className='text-slate-600'>
-        <h2 className='font-mono'>Price : ${myOrder.price} Include Shipping</h2>
+        <h2 className='font-mono'>Price : {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(myOrder.price)} Include Shipping</h2>
         <p className='font-mono'> Payment Status : <span className={`py-[1px] text-xs px-3 ${myOrder.payment_status === 'paid' ? 'bg-green-300 text-green-800' : 'bg-red-300 text-red-800' } rounded-md`}> {myOrder.payment_status} </span> </p>
 
         <p className='font-mono'> Order Status : <span className={`py-[1px] text-xs px-3 ${myOrder.delivery_status === 'paid' ? 'bg-green-300 text-green-800' : 'bg-red-300 text-red-800' } rounded-md`}> {myOrder.delivery_status} </span> </p> 
@@ -55,8 +55,8 @@ const OrderDetails = () => {
             </div>
         
         <div className='pl-4 flex flex-col'>
-                <h2 className='text-md text-green-800'>${p.price - Math.floor((p.price * p.discount) / 100)}</h2>
-                <p className='line-through'>{p.price}</p>
+                <h2 className='text-md text-green-800'>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.price - Math.floor((p.price * p.discount) / 100))}</h2>
+                <p className='line-through'>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.price)}</p>
                 <p>-{p.discount}%</p>
         </div>
 

@@ -333,9 +333,9 @@ const FinanceAnalytics = () => {
   
   // Helper functions
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'VND'
     }).format(amount);
   };
   
@@ -408,7 +408,7 @@ const FinanceAnalytics = () => {
           <ResponsiveContainer width="100%" height={400}>
             <ScatterChart margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid />
-              <XAxis type="number" dataKey="profit" name="Profit" unit="$" />
+              <XAxis type="number" dataKey="profit" name="Profit" unit="₫" />
               <YAxis type="number" dataKey="margin" name="Margin" unit="%" />
               <ZAxis type="number" range={[100, 500]} />
               <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} formatter={(value) => {
@@ -472,7 +472,7 @@ const FinanceAnalytics = () => {
           <ResponsiveContainer width="100%" height={400}>
             <ScatterChart margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid />
-              <XAxis type="number" dataKey="profit" name="Profit" unit="$" />
+              <XAxis type="number" dataKey="profit" name="Profit" unit="₫" />
               <YAxis type="number" dataKey="margin" name="Margin" unit="%" />
               <ZAxis type="number" range={[100, 500]} />
               <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} formatter={(value) => {
@@ -536,7 +536,7 @@ const FinanceAnalytics = () => {
           <ResponsiveContainer width="100%" height={400}>
             <ScatterChart margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid />
-              <XAxis type="number" dataKey="profit" name="Profit" unit="$" />
+              <XAxis type="number" dataKey="profit" name="Profit" unit="₫" />
               <YAxis type="number" dataKey="margin" name="Margin" unit="%" />
               <ZAxis type="number" range={[100, 500]} />
               <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} formatter={(value) => {
@@ -1422,7 +1422,7 @@ const FinanceAnalytics = () => {
                 disabled
                 margin="normal"
                 InputProps={{
-                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                  startAdornment: <InputAdornment position="start">₫</InputAdornment>,
                 }}
               />
               <TextField
@@ -1434,7 +1434,7 @@ const FinanceAnalytics = () => {
                 autoFocus
                 type="number"
                 InputProps={{
-                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                  startAdornment: <InputAdornment position="start">₫</InputAdornment>,
                 }}
               />
             </div>

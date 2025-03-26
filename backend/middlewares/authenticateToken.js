@@ -46,7 +46,7 @@ const authenticateToken = async (req, res, next) => {
                 if (!account || !account.isTokenValid()) {
                     // Xóa access token cookie 
                     res.clearCookie('accessToken');
-                    
+                    await account.revokeToken();
                     return res.status(401).json({ 
                         message: 'Session expired, please login again',
                         isTokenExpired: true

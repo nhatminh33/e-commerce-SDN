@@ -10,11 +10,11 @@ exports.formatAmountDecimal = (amount) => {
 /**
  * Format currency
  * @param {number} amount 
- * @param {string} currency - Default: USD
+ * @param {string} currency - Default: VND
  * @returns {string} - Formatted currency string
  */
-exports.formatCurrency = (amount, currency = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
+exports.formatCurrency = (amount, currency = 'VND') => {
+    return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
         currency: currency
     }).format(amount);

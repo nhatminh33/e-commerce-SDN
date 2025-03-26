@@ -91,9 +91,9 @@ const ProductCostDialog = ({ open, handleClose, product, onSuccess }) => {
   
   // Format currency
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'VND'
     }).format(amount);
   };
   
@@ -137,7 +137,7 @@ const ProductCostDialog = ({ open, handleClose, product, onSuccess }) => {
               helperText={costError}
               margin="normal"
               InputProps={{
-                startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                startAdornment: <InputAdornment position="start">₫</InputAdornment>,
               }}
               disabled={isLoading}
             />
