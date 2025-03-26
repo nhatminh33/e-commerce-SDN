@@ -73,43 +73,7 @@ const Header = () => {
             {/* Top Bar */}
             <div className='header-top bg-pink-50 md-lg:hidden border-b border-pink-100'>
                 <div className='w-[85%] lg:w-[90%] mx-auto'>
-                    <div className='flex w-full justify-between items-center h-[50px] text-gray-600'>
-                        <ul className='flex justify-start items-center gap-8 text-sm'>
-                            <li className='flex relative justify-center items-center gap-2 after:absolute after:h-[18px] after:w-[1px] after:bg-pink-200 after:-right-[16px]'>
-                                <span className="text-pink-500"><MdEmail /></span>
-                                <span>velvetfleur@gmail.com</span>
-                            </li>
-
-                            <li className='flex relative justify-center items-center gap-2'>
-                                <span className="text-pink-500"><IoMdPhonePortrait /></span>
-                                <span>+(123) 3243 343</span>
-                            </li> 
-                        </ul>
-
-                        <div>
-                            <div className='flex justify-center items-center gap-10'>
-                                <div className='flex justify-center items-center gap-4'>
-                                    <a href="#" className="text-gray-500 hover:text-pink-500 transition-all"><FaFacebookF /></a>
-                                    <a href="#" className="text-gray-500 hover:text-pink-500 transition-all"><FaTwitter /></a>
-                                    <a href="#" className="text-gray-500 hover:text-pink-500 transition-all"><FaLinkedin /></a>
-                                    <a href="#" className="text-gray-500 hover:text-pink-500 transition-all"><FaGithub /></a> 
-                                </div>
-                                
-                                {userInfo ? (
-                                    <Link className='flex cursor-pointer justify-center items-center gap-2 text-sm' to='/dashboard'>
-                                        <span className="text-pink-500"><FaUser/></span>
-                                        <span>{userInfo.name}</span>
-                                    </Link>
-                                ) : (
-                                    <Link to='/login' className='flex cursor-pointer justify-center items-center gap-2 text-sm'>
-                                        <span className="text-pink-500"><FaLock /></span>
-                                        <span>Login</span>
-                                    </Link>
-                                )}
-                            </div>
-                        </div> 
-                    </div> 
-                </div> 
+                
             </div>
 
             {/* Main Header */}
@@ -172,12 +136,24 @@ const Header = () => {
                                                 </span>
                                             </span>
                                         </div>
+                                        {userInfo ? (
+                                    <Link className='flex cursor-pointer justify-center items-center gap-2 text-sm' to='/dashboard'>
+                                        <span className="text-pink-500"><FaUser/></span>
+                                        <span>{userInfo.name}</span>
+                                    </Link>
+                                ) : (
+                                    <Link to='/login' className='flex cursor-pointer justify-center items-center gap-2 text-sm'>
+                                        <span className="text-pink-500"><FaLock /></span>
+                                        <span>Login</span>
+                                    </Link>
+                                )}
                                     </div> 
                                 </div>
                             </div> 
                         </div>
                     </div> 
                 </div>
+            </div>
             </div>
 
             {/* Mobile Sidebar */}
